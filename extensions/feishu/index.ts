@@ -53,6 +53,16 @@ function registerFeishuBitableTools(api: OpenClawPluginApi) {
   register(api);
 }
 
+export function registerFeishuFullRuntime(api: OpenClawPluginApi) {
+  registerFeishuSubagentHooks(api);
+  registerFeishuDocTools(api);
+  registerFeishuChatTools(api);
+  registerFeishuWikiTools(api);
+  registerFeishuDriveTools(api);
+  registerFeishuPermTools(api);
+  registerFeishuBitableTools(api);
+}
+
 export default defineBundledChannelEntry({
   id: "feishu",
   name: "Feishu",
@@ -70,13 +80,5 @@ export default defineBundledChannelEntry({
     specifier: "./runtime-api.js",
     exportName: "setFeishuRuntime",
   },
-  registerFull(api) {
-    registerFeishuSubagentHooks(api);
-    registerFeishuDocTools(api);
-    registerFeishuChatTools(api);
-    registerFeishuWikiTools(api);
-    registerFeishuDriveTools(api);
-    registerFeishuPermTools(api);
-    registerFeishuBitableTools(api);
-  },
+  registerFull: registerFeishuFullRuntime,
 });

@@ -277,6 +277,7 @@ export async function inspectGatewayRestart(params: {
   env?: NodeJS.ProcessEnv;
   expectedVersion?: string | null;
   includeUnknownListenersAsStale?: boolean;
+  requireReachability?: boolean;
 }): Promise<GatewayRestartSnapshot> {
   const env = params.env ?? process.env;
   const expectedVersion = normalizeOptionalString(params.expectedVersion);
@@ -371,7 +372,7 @@ export async function inspectGatewayRestart(params: {
       : gatewayListeners.length > 0 || listenerAttributionGap;
   let healthy = running && ownsPort;
   let gatewayVersion: string | null | undefined;
-  if (expectedVersion && healthy && portUsage.status === "busy") {
+  if ((expectedVersion || params.requireReachability) && healthy && portUsage.status === "busy") {
     try {
       const reachable = await loadReachability();
       healthy = reachable.reachable;
@@ -467,6 +468,7 @@ export async function waitForGatewayHealthyRestart(params: {
   env?: NodeJS.ProcessEnv;
   expectedVersion?: string | null;
   includeUnknownListenersAsStale?: boolean;
+  requireReachability?: boolean;
 }): Promise<GatewayRestartSnapshot> {
   const attempts = params.attempts ?? DEFAULT_RESTART_HEALTH_ATTEMPTS;
   const delayMs = params.delayMs ?? DEFAULT_RESTART_HEALTH_DELAY_MS;
@@ -477,6 +479,7 @@ export async function waitForGatewayHealthyRestart(params: {
     env: params.env,
     expectedVersion: params.expectedVersion,
     includeUnknownListenersAsStale: params.includeUnknownListenersAsStale,
+    requireReachability: params.requireReachability,
   });
 
   let consecutiveStoppedFreeCount = 0;
@@ -517,6 +520,7 @@ export async function waitForGatewayHealthyRestart(params: {
       env: params.env,
       expectedVersion: params.expectedVersion,
       includeUnknownListenersAsStale: params.includeUnknownListenersAsStale,
+      requireReachability: params.requireReachability,
     });
   }
 

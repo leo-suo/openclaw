@@ -1443,7 +1443,7 @@ export async function runHeartbeatOnce(opts: {
       });
       await updateTaskTimestamps();
       consumeInspectedSystemEvents();
-      return { status: "ran", durationMs: Date.now() - startedAt };
+      return await finishRanHeartbeatTurn();
     }
 
     if (!heartbeatToolResponse && (!replyPayload || !hasOutboundReplyContent(replyPayload))) {

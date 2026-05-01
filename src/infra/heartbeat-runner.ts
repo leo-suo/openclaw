@@ -1954,11 +1954,6 @@ export function startHeartbeatRunner(opts: {
           ran = true;
         }
 
-        const defaultSessionKey = resolveHeartbeatSession(
-          state.cfg,
-          agent.agentId,
-          agent.heartbeat,
-        ).sessionKey;
         const dueSessionKeys = canHeartbeatDeliverCommitments(agent.heartbeat)
           ? await listDueCommitmentSessionKeys({
               cfg: state.cfg,
@@ -1968,9 +1963,6 @@ export function startHeartbeatRunner(opts: {
             })
           : [];
         for (const dueSessionKey of dueSessionKeys) {
-          if (dueSessionKey === defaultSessionKey) {
-            continue;
-          }
           let commitmentRes: HeartbeatRunResult;
           try {
             commitmentRes = await runOnce({

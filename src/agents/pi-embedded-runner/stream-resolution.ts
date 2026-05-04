@@ -1,5 +1,6 @@
 import type { StreamFn } from "@mariozechner/pi-agent-core";
 import { getApiProvider, streamSimple } from "@mariozechner/pi-ai";
+import type { ProviderRuntimePluginHandle } from "../../plugins/provider-hook-runtime.js";
 import { createAnthropicVertexStreamFnForModel } from "../anthropic-vertex-stream.js";
 import { createOpenAIWebSocketStreamFn } from "../openai-ws-stream.js";
 import { getModelProviderRequestTransport } from "../provider-request-config.js";
@@ -86,6 +87,7 @@ export function resolveEmbeddedAgentStreamFn(params: {
   model: EmbeddedRunAttemptParams["model"];
   resolvedApiKey?: string;
   authStorage?: { getApiKey(provider: string): Promise<string | undefined> };
+  providerRuntimeHandle?: ProviderRuntimePluginHandle;
 }): StreamFn {
   if (params.providerStreamFn) {
     return wrapEmbeddedAgentStreamFn(params.providerStreamFn, {
@@ -120,7 +122,9 @@ export function resolveEmbeddedAgentStreamFn(params: {
   }
 
   if (isDefaultPiStreamFnForModel(params.model, params.currentStreamFn)) {
-    const boundaryAwareStreamFn = createBoundaryAwareStreamFnForModel(params.model);
+    const boundaryAwareStreamFn = createBoundaryAwareStreamFnForModel(params.model, {
+      providerRuntimeHandle: params.providerRuntimeHandle,
+    });
     if (boundaryAwareStreamFn) {
       // Boundary-aware transports read credentials from options.apiKey just
       // like provider-owned streams, but the embedded run layer never gets to

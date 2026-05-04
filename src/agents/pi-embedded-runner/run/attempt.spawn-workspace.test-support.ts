@@ -21,6 +21,7 @@ import {
 } from "../../../shared/string-coerce.js";
 import type { EmbeddedContextFile } from "../../pi-embedded-helpers.js";
 import type { MessagingToolSend } from "../../pi-embedded-messaging.types.js";
+import { buildAgentRuntimePlan } from "../../runtime-plan/build.js";
 import type { WorkspaceBootstrapFile } from "../../workspace.js";
 
 type SubscribeEmbeddedPiSessionFn =
@@ -64,7 +65,6 @@ type AttemptSpawnWorkspaceHoisted = {
   ensureGlobalUndiciDispatcherStreamTimeoutsMock: UnknownMock;
   ensureGlobalUndiciStreamTimeoutsMock: UnknownMock;
   buildEmbeddedMessageActionDiscoveryInputMock: UnknownMock;
-  createOpenClawCodingToolsMock: UnknownMock;
   subscribeEmbeddedPiSessionMock: Mock<SubscribeEmbeddedPiSessionFn>;
   acquireSessionWriteLockMock: Mock<AcquireSessionWriteLockFn>;
   installToolResultContextGuardMock: UnknownMock;
@@ -79,6 +79,18 @@ type AttemptSpawnWorkspaceHoisted = {
   resolveEmbeddedRunSkillEntriesMock: UnknownMock;
   resolveSkillsPromptForRunMock: UnknownMock;
   supportsModelToolsMock: Mock<(model?: unknown) => boolean>;
+  createOpenClawCodingToolsMock: Mock<
+    (options?: { workspaceDir?: string; spawnWorkspaceDir?: string }) => Array<{
+      name: string;
+      execute: (
+        callId: string,
+        input: { task?: string },
+        session?: unknown,
+        abortSignal?: unknown,
+        ctx?: unknown,
+      ) => Promise<unknown>;
+    }>
+  >;
   getGlobalHookRunnerMock: Mock<() => unknown>;
   initializeGlobalHookRunnerMock: UnknownMock;
   runContextEngineMaintenanceMock: AsyncContextEngineMaintenanceMock;
@@ -130,7 +142,6 @@ const hoisted = vi.hoisted((): AttemptSpawnWorkspaceHoisted => {
   const ensureGlobalUndiciDispatcherStreamTimeoutsMock = vi.fn();
   const ensureGlobalUndiciStreamTimeoutsMock = vi.fn();
   const buildEmbeddedMessageActionDiscoveryInputMock = vi.fn((params: unknown) => params);
-  const createOpenClawCodingToolsMock = vi.fn(() => []);
   const installToolResultContextGuardMock = vi.fn(() => () => {});
   const installContextEngineLoopHookMock = vi.fn(() => () => {});
   const flushPendingToolResultsAfterIdleMock = vi.fn(async () => {});
@@ -164,6 +175,28 @@ const hoisted = vi.hoisted((): AttemptSpawnWorkspaceHoisted => {
   }));
   const resolveSkillsPromptForRunMock = vi.fn(() => "");
   const supportsModelToolsMock = vi.fn<(model?: unknown) => boolean>(() => true);
+  const createOpenClawCodingToolsMock = vi.fn(
+    (options?: { workspaceDir?: string; spawnWorkspaceDir?: string }) => [
+      {
+        name: "sessions_spawn",
+        execute: async (
+          _callId: string,
+          input: { task?: string },
+          _session?: unknown,
+          _abortSignal?: unknown,
+          _ctx?: unknown,
+        ) =>
+          await spawnSubagentDirectMock(
+            {
+              task: input.task ?? "",
+            },
+            {
+              workspaceDir: options?.spawnWorkspaceDir ?? options?.workspaceDir,
+            },
+          ),
+      },
+    ],
+  );
   const getGlobalHookRunnerMock = vi.fn<() => unknown>(() => undefined);
   const initializeGlobalHookRunnerMock = vi.fn();
   const runContextEngineMaintenanceMock = vi.fn(async (_params?: unknown) => undefined);
@@ -199,7 +232,6 @@ const hoisted = vi.hoisted((): AttemptSpawnWorkspaceHoisted => {
     ensureGlobalUndiciDispatcherStreamTimeoutsMock,
     ensureGlobalUndiciStreamTimeoutsMock,
     buildEmbeddedMessageActionDiscoveryInputMock,
-    createOpenClawCodingToolsMock,
     subscribeEmbeddedPiSessionMock,
     acquireSessionWriteLockMock,
     installToolResultContextGuardMock,
@@ -214,6 +246,7 @@ const hoisted = vi.hoisted((): AttemptSpawnWorkspaceHoisted => {
     resolveEmbeddedRunSkillEntriesMock,
     resolveSkillsPromptForRunMock,
     supportsModelToolsMock,
+    createOpenClawCodingToolsMock,
     getGlobalHookRunnerMock,
     initializeGlobalHookRunnerMock,
     runContextEngineMaintenanceMock,
@@ -277,17 +310,39 @@ vi.mock("../../../plugins/plugin-metadata-snapshot.js", () => ({
 
 vi.mock("@mariozechner/pi-coding-agent", () => {
   function AuthStorage() {}
-  class DefaultResourceLoader {
-    async reload() {}
-  }
   function ModelRegistry() {}
+  const createExtensionRuntime = () => ({
+    flagValues: new Map(),
+    pendingProviderRegistrations: [],
+    refreshTools: vi.fn(),
+    sendMessage: vi.fn(),
+    sendUserMessage: vi.fn(),
+    appendEntry: vi.fn(),
+    setSessionName: vi.fn(),
+    getSessionName: vi.fn(),
+    setLabel: vi.fn(),
+    getActiveTools: vi.fn(() => []),
+    getAllTools: vi.fn(() => []),
+    setActiveTools: vi.fn(),
+    getCommands: vi.fn(() => []),
+    setModel: vi.fn(async () => true),
+    getThinkingLevel: vi.fn(() => "medium"),
+    setThinkingLevel: vi.fn(),
+    registerProvider: vi.fn(),
+    unregisterProvider: vi.fn(),
+  });
   const estimateTokens = (value: unknown) =>
     Math.max(1, Math.ceil(JSON.stringify(value ?? "").length / 4));
 
   return {
     AuthStorage,
     createAgentSession: (...args: unknown[]) => hoisted.createAgentSessionMock(...args),
-    DefaultResourceLoader,
+    createEventBus: vi.fn(() => ({})),
+    createExtensionRuntime,
+    createSyntheticSourceInfo: vi.fn((path: string, info: Record<string, unknown>) => ({
+      path,
+      ...info,
+    })),
     estimateTokens,
     generateSummary: async () => "",
     ModelRegistry,
@@ -566,10 +621,6 @@ vi.mock("../../anthropic-vertex-stream.js", () => ({
 
 vi.mock("../../custom-api-registry.js", () => ({
   ensureCustomApiRegistered: () => {},
-}));
-
-vi.mock("../../model-auth.js", () => ({
-  resolveModelAuthMode: () => undefined,
 }));
 
 vi.mock("../../model-tool-support.js", () => ({
@@ -903,6 +954,7 @@ export function resetEmbeddedAttemptHarness(
   });
   hoisted.resolveSkillsPromptForRunMock.mockReset().mockReturnValue("");
   hoisted.supportsModelToolsMock.mockReset().mockReturnValue(true);
+  hoisted.createOpenClawCodingToolsMock.mockClear();
   hoisted.getGlobalHookRunnerMock.mockReset().mockReturnValue(undefined);
   hoisted.runContextEngineMaintenanceMock.mockReset().mockResolvedValue(undefined);
   hoisted.getHistoryLimitFromSessionKeyMock.mockReset().mockReturnValue(undefined);
@@ -1138,6 +1190,16 @@ export async function createContextEngineAttemptRunner(params: {
       authStorage: testAuthStorage as never,
       authProfileStore: { version: 1, profiles: {} },
       modelRegistry: {} as never,
+      runtimePlan: buildAgentRuntimePlan({
+        provider: "openai",
+        modelId: "gpt-test",
+        model: testModel,
+        modelApi: "openai-completions",
+        config: {},
+        workspaceDir,
+        agentDir,
+        providerRuntimeHandle: { provider: "openai" },
+      }),
       thinkLevel: "off",
       senderIsOwner: true,
       disableTools: true,

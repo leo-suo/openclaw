@@ -1,5 +1,8 @@
 import crypto from "node:crypto";
-import { resolveSessionAuthProfileOverride } from "../../agents/auth-profiles/session-override.js";
+import {
+  resolveSessionAuthProfileOverrideState,
+  type ResolvedSessionAuthProfileOverride,
+} from "../../agents/auth-profiles/session-override.js";
 import type { ExecToolDefaults } from "../../agents/bash-tools.js";
 import { resolveFastModeState } from "../../agents/fast-mode.js";
 import { resolveAgentHarnessPolicy } from "../../agents/harness/selection.js";
@@ -30,7 +33,6 @@ import {
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
 import type { SilentReplyConversationType } from "../../shared/silent-reply-policy.js";
 import { normalizeOptionalString } from "../../shared/string-coerce.js";
-import { isReasoningTagProvider } from "../../utils/provider-utils.js";
 import { hasControlCommand } from "../command-detection.js";
 import { resolveEnvelopeFormatOptions } from "../envelope.js";
 import { HEARTBEAT_TRANSCRIPT_PROMPT } from "../heartbeat.js";
@@ -67,12 +69,17 @@ import { buildReplyPromptBodies } from "./prompt-prelude.js";
 import { resolveActiveRunQueueAction } from "./queue-policy.js";
 import { resolveQueueSettings } from "./queue/settings-runtime.js";
 import { isSteeringQueueMode } from "./queue/steering.js";
+import {
+  createReplyStageTracker,
+  emitReplyStageSummary,
+  ReplyStageName,
+} from "./reply-stage-timing.js";
 import { resolveRuntimePolicySessionKey } from "./runtime-policy-session-key.js";
 import { resolveBareSessionResetPromptState } from "./session-reset-prompt.js";
 import { resolveBareResetBootstrapFileAccess } from "./session-reset-prompt.js";
 import { drainFormattedSystemEvents } from "./session-system-events.js";
 import { buildSessionStartupContextPrelude, shouldApplyStartupContext } from "./startup-context.js";
-import { resolveTypingMode } from "./typing-mode.js";
+import { createTypingSignaler, resolveTypingMode } from "./typing-mode.js";
 import { resolveRunTypingPolicy } from "./typing-policy.js";
 import type { TypingController } from "./typing.js";
 
@@ -431,6 +438,7 @@ export async function runPreparedReply(
     execOverrides,
     abortedLastRun,
   } = params;
+  const preparedStageTracker = createReplyStageTracker();
   const isHeartbeat = opts?.isHeartbeat === true;
   const traceAttributes = {
     provider,
@@ -493,6 +501,12 @@ export async function runPreparedReply(
     suppressTyping,
     sourceReplyDeliveryMode: opts?.sourceReplyDeliveryMode,
   });
+  const typingSignals = createTypingSignaler({
+    typing,
+    mode: typingMode,
+    isHeartbeat,
+  });
+  preparedStageTracker.mark(ReplyStageName.preparedContext);
   const shouldInjectGroupIntro = Boolean(
     isGroupChat && (isFirstTurnInSession || sessionEntry?.groupActivationNeedsSystemIntro),
   );
@@ -632,6 +646,7 @@ export async function runPreparedReply(
           cfg,
         })
       : null;
+  preparedStageTracker.mark(ReplyStageName.bareResetPrep);
   const baseBodyFinal = isBareSessionReset
     ? (bareResetPromptState?.prompt ?? "")
     : stripPromptThinkingDirectives(baseBody);
@@ -681,6 +696,7 @@ export async function runPreparedReply(
   const effectiveBaseBody = hasUserBody
     ? baseBodyForPrompt
     : [inboundUserContext, "[User sent media without caption]"].filter(Boolean).join("\n\n");
+  await typingSignals.signalRunStart();
   const transcriptBodyBase = isHeartbeat
     ? HEARTBEAT_TRANSCRIPT_PROMPT
     : isBareSessionReset
@@ -705,7 +721,9 @@ export async function runPreparedReply(
   if (!resolvedThinkLevel && prefixedBodyBase) {
     const parts = prefixedBodyBase.split(/\s+/);
     const maybeLevel = normalizeThinkLevel(parts[0]);
-    const thinkingCatalog = maybeLevel ? await modelState.resolveThinkingCatalog() : undefined;
+    const thinkingCatalog = maybeLevel
+      ? await modelState.resolveThinkingCatalog({ hydrateRuntimeCatalog: true })
+      : undefined;
     if (
       maybeLevel &&
       isThinkingLevelSupported({ provider, model, level: maybeLevel, catalog: thinkingCatalog })
@@ -722,6 +740,7 @@ export async function runPreparedReply(
     : !isNewSession && threadStarterBody
       ? `[Thread starter - for context]\n${threadStarterBody}`
       : undefined;
+  preparedStageTracker.mark(ReplyStageName.userPromptPrep);
   const drainedSystemEventBlocks: string[] = [];
   let forceSenderIsOwnerFalseFromSystemEvents = false;
   const rebuildPromptBodies = async (): Promise<{
@@ -781,11 +800,16 @@ export async function runPreparedReply(
     "reply.build_prompt_bodies",
     () => rebuildPromptBodies(),
   );
+  preparedStageTracker.mark(ReplyStageName.skillSnapshot);
+  preparedStageTracker.mark(ReplyStageName.promptBodies);
   const currentTurnContext = resolveCurrentTurnPromptContext(sessionCtx);
   if (!resolvedThinkLevel) {
     resolvedThinkLevel = await modelState.resolveDefaultThinkingLevel();
   }
-  const thinkingCatalog = await modelState.resolveThinkingCatalog();
+  const explicitThink = directives.hasThinkDirective && directives.thinkLevel !== undefined;
+  const thinkingCatalog = await modelState.resolveThinkingCatalog({
+    hydrateRuntimeCatalog: explicitThink,
+  });
   if (
     !isThinkingLevelSupported({
       provider,
@@ -794,7 +818,6 @@ export async function runPreparedReply(
       catalog: thinkingCatalog,
     })
   ) {
-    const explicitThink = directives.hasThinkDirective && directives.thinkLevel !== undefined;
     if (explicitThink) {
       typing.cleanup();
       return {
@@ -828,6 +851,7 @@ export async function runPreparedReply(
       }
     }
   }
+  preparedStageTracker.mark(ReplyStageName.thinkingCatalog);
   const sessionIdFinal = sessionId ?? crypto.randomUUID();
   const sessionFilePathOptions = resolveSessionFilePathOptions({ agentId, storePath });
   const resolvePreparedSessionState = (): {
@@ -854,6 +878,7 @@ export async function runPreparedReply(
     };
   };
   let preparedSessionState = resolvePreparedSessionState();
+  preparedStageTracker.mark(ReplyStageName.sessionState);
   const resolvedQueue = useFastReplyRuntime
     ? {
         mode: "collect" as const,
@@ -888,6 +913,7 @@ export async function runPreparedReply(
     );
     logVerbose(`Interrupting ${sessionLaneKey} (cleared ${cleared}, aborted=${aborted})`);
   }
+  preparedStageTracker.mark(ReplyStageName.queueRuntime);
   const agentHarnessPolicy = useFastReplyRuntime
     ? undefined
     : resolveAgentHarnessPolicy({
@@ -904,24 +930,28 @@ export async function runPreparedReply(
           harnessRuntime: agentHarnessPolicy.runtime,
         })
       : [provider];
-  let authProfileId = useFastReplyRuntime
-    ? preparedSessionState.sessionEntry?.authProfileOverride
-    : await traceRunPhase("reply.resolve_auth_profile", () =>
-        resolveSessionAuthProfileOverride({
-          cfg,
-          provider,
-          acceptedProviderIds: resolveAcceptedAuthProfileProviders(),
-          agentDir,
-          sessionEntry: preparedSessionState.sessionEntry,
-          sessionStore,
-          sessionKey,
-          storePath,
-          isNewSession,
-        }),
-      );
+  const resolvePreparedAuthProfileState = async (): Promise<ResolvedSessionAuthProfileOverride> =>
+    useFastReplyRuntime
+      ? { authProfileId: preparedSessionState.sessionEntry?.authProfileOverride }
+      : await traceRunPhase("reply.resolve_auth_profile", () =>
+          resolveSessionAuthProfileOverrideState({
+            cfg,
+            provider,
+            acceptedProviderIds: resolveAcceptedAuthProfileProviders(),
+            agentDir,
+            sessionEntry: preparedSessionState.sessionEntry,
+            sessionStore,
+            sessionKey,
+            storePath,
+            isNewSession,
+          }),
+        );
+  let authProfileState = await resolvePreparedAuthProfileState();
+  let authProfileId = authProfileState.authProfileId;
   const { runReplyAgent } = await traceRunPhase("reply.load_agent_runner_runtime", () =>
     loadAgentRunnerRuntime(),
   );
+  preparedStageTracker.mark(ReplyStageName.authProfile);
   const queueKey = sessionKey ?? sessionIdFinal;
   preparedSessionState = resolvePreparedSessionState();
   const resolveActiveQueueSessionId = () =>
@@ -964,19 +994,8 @@ export async function runPreparedReply(
         piRuntime?.waitForEmbeddedPiRunEnd(activeRunSessionId) ?? Promise.resolve(undefined),
       refreshPreparedState: async () => {
         preparedSessionState = resolvePreparedSessionState();
-        authProfileId = useFastReplyRuntime
-          ? preparedSessionState.sessionEntry?.authProfileOverride
-          : await resolveSessionAuthProfileOverride({
-              cfg,
-              provider,
-              acceptedProviderIds: resolveAcceptedAuthProfileProviders(),
-              agentDir,
-              sessionEntry: preparedSessionState.sessionEntry,
-              sessionStore,
-              sessionKey,
-              storePath,
-              isNewSession,
-            });
+        authProfileState = await resolvePreparedAuthProfileState();
+        authProfileId = authProfileState.authProfileId;
         preparedSessionState = resolvePreparedSessionState();
         ({ prefixedCommandBody, queuedBody, transcriptCommandBody } = await traceRunPhase(
           "reply.build_prompt_bodies",
@@ -991,6 +1010,7 @@ export async function runPreparedReply(
     }
     ({ activeSessionId, isActive, isStreaming } = queueState.busyState);
   }
+  preparedStageTracker.mark(ReplyStageName.activeQueue);
   const authProfileIdSource = preparedSessionState.sessionEntry?.authProfileOverrideSource;
   const runHasSessionModelOverride = Boolean(
     normalizeOptionalString(preparedSessionState.sessionEntry?.modelOverride) ||
@@ -1050,6 +1070,8 @@ export async function runPreparedReply(
         : undefined,
       authProfileId,
       authProfileIdSource,
+      authProfileStore: authProfileState.authStore,
+      authProfileOrder: authProfileState.authProfileOrder,
       thinkLevel: resolvedThinkLevel,
       fastMode: useFastReplyRuntime
         ? false
@@ -1083,14 +1105,6 @@ export async function runPreparedReply(
       extraSystemPromptStatic: extraSystemPromptStaticParts.join("\n\n"),
       skipProviderRuntimeHints: useFastReplyRuntime,
       allowEmptyAssistantReplyAsSilent,
-      ...(!useFastReplyRuntime &&
-      isReasoningTagProvider(provider, {
-        config: cfg,
-        workspaceDir,
-        modelId: model,
-      })
-        ? { enforceFinalTag: true }
-        : {}),
     },
   };
 
@@ -1101,6 +1115,13 @@ export async function runPreparedReply(
           implicitCurrentMessage: "deny" as const,
         }
       : undefined;
+  preparedStageTracker.mark(ReplyStageName.followupRun);
+  emitReplyStageSummary({
+    runId: opts?.runId ?? "pending",
+    sessionId: preparedSessionState.sessionId,
+    phase: "prepared-reply",
+    tracker: preparedStageTracker,
+  });
 
   return runReplyAgent({
     commandBody: prefixedCommandBody,
@@ -1138,6 +1159,7 @@ export async function runPreparedReply(
     sessionCtx,
     shouldInjectGroupIntro,
     typingMode,
+    typingSignals,
     resetTriggered: effectiveResetTriggered,
     replyThreadingOverride,
   });

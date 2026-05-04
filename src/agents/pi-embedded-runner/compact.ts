@@ -1,12 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import {
-  createAgentSession,
-  DefaultResourceLoader,
-  estimateTokens,
-  SessionManager,
-} from "@mariozechner/pi-coding-agent";
+import { createAgentSession, estimateTokens, SessionManager } from "@mariozechner/pi-coding-agent";
 import { isAcpRuntimeSpawnAvailable } from "../../acp/runtime/availability.js";
 import type { ThinkLevel } from "../../auto-reply/thinking.js";
 import { resolveAgentModelFallbackValues } from "../../config/model-input.js";
@@ -25,11 +20,7 @@ import { getCurrentPluginMetadataSnapshot } from "../../plugins/current-plugin-m
 import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { extractModelCompat } from "../../plugins/provider-model-compat.js";
 import type { ProviderRuntimeModel } from "../../plugins/provider-runtime-model.types.js";
-import {
-  prepareProviderRuntimeAuth,
-  resolveProviderTextTransforms,
-  transformProviderSystemPrompt,
-} from "../../plugins/provider-runtime.js";
+import { prepareProviderRuntimeAuth } from "../../plugins/provider-runtime.js";
 import { isCronSessionKey, isSubagentSessionKey } from "../../routing/session-key.js";
 import { buildTtsSystemPromptHint } from "../../tts/tts.js";
 import { resolveUserPath } from "../../utils.js";
@@ -64,11 +55,9 @@ import {
   applyAuthHeaderOverride,
   applyLocalNoAuthHeaderOverride,
   getApiKeyForModel,
-  resolveModelAuthMode,
 } from "../model-auth.js";
 import { isFallbackSummaryError, runWithModelFallback } from "../model-fallback.js";
 import { supportsModelTools } from "../model-tool-support.js";
-import { ensureOpenClawModelsJson } from "../models-config.js";
 import { resolveOwnerDisplaySetting } from "../owner-display.js";
 import { createBundleLspToolRuntime } from "../pi-bundle-lsp-runtime.js";
 import { createBundleMcpToolRuntime } from "../pi-bundle-mcp-tools.js";
@@ -79,11 +68,6 @@ import {
   setCompactionSafeguardCancelReason,
 } from "../pi-hooks/compaction-safeguard-runtime.js";
 import { createPreparedEmbeddedPiSettingsManager } from "../pi-project-settings.js";
-import {
-  applyPiAutoCompactionGuard,
-  applyPiCompactionSettingsFromConfig,
-  isSilentOverflowProneModel,
-} from "../pi-settings.js";
 import { createOpenClawCodingTools } from "../pi-tools.js";
 import { wrapStreamFnTextTransforms } from "../plugin-text-transforms.js";
 import { registerProviderStreamForModel } from "../provider-stream.js";
@@ -140,9 +124,11 @@ import { log } from "./logger.js";
 import { hardenManualCompactionBoundary } from "./manual-compaction-boundary.js";
 import { buildEmbeddedMessageActionDiscoveryInput } from "./message-action-discovery-input.js";
 import { readPiModelContextTokens } from "./model-context-tokens.js";
-import { buildModelAliasLines, resolveModelAsync } from "./model.js";
+import { buildModelAliasLines, resolvePreparedRuntimeModelAsync } from "./model.js";
 import { sanitizeSessionHistory, validateReplayTurns } from "./replay-history.js";
+import { createEmbeddedPiResourceLoader } from "./resource-loader.js";
 import { shouldUseOpenAIWebSocketTransport } from "./run/attempt.thread-helpers.js";
+import { shouldPersistStrictTurnSessionRepair } from "./run/attempt.transcript-policy.js";
 import { buildEmbeddedSandboxInfo } from "./sandbox-info.js";
 import { prewarmSessionFile, trackSessionManagerAccess } from "./session-manager-cache.js";
 import { resolveEmbeddedRunSkillEntries } from "./skills-runtime.js";
@@ -197,7 +183,7 @@ function prepareCompactionSessionAgent(params: {
   sessionAgentId: string;
   effectiveWorkspace: string;
   agentDir: string;
-  runtimePlan?: AgentRuntimePlan;
+  runtimePlan: AgentRuntimePlan;
 }) {
   params.session.agent.streamFn = resolveEmbeddedAgentStreamFn({
     currentStreamFn: resolveEmbeddedAgentBaseStreamFn({ session: params.session as never }),
@@ -209,21 +195,17 @@ function prepareCompactionSessionAgent(params: {
     model: params.effectiveModel,
     resolvedApiKey: params.resolvedApiKey,
     authStorage: params.authStorage as never,
+    providerRuntimeHandle: params.runtimePlan.providerRuntimeHandle,
   });
-  const providerTextTransforms = resolveProviderTextTransforms({
-    provider: params.provider,
-    config: params.config,
-    workspaceDir: params.effectiveWorkspace,
-  });
-  if (providerTextTransforms) {
+  if (params.runtimePlan.prompt.textTransforms) {
     params.session.agent.streamFn = wrapStreamFnTextTransforms({
       streamFn: params.session.agent.streamFn as never,
-      input: providerTextTransforms.input,
-      output: providerTextTransforms.output,
+      input: params.runtimePlan.prompt.textTransforms.input,
+      output: params.runtimePlan.prompt.textTransforms.output,
       transformSystemPrompt: false,
     }) as never;
   }
-  const preparedRuntimeExtraParams = params.runtimePlan?.transport.resolveExtraParams({
+  const preparedRuntimeExtraParams = params.runtimePlan.transport.resolveExtraParams({
     thinkingLevel: params.thinkLevel,
     agentId: params.sessionAgentId,
     workspaceDir: params.effectiveWorkspace,
@@ -241,7 +223,10 @@ function prepareCompactionSessionAgent(params: {
     params.effectiveModel,
     params.agentDir,
     undefined,
-    preparedRuntimeExtraParams ? { preparedExtraParams: preparedRuntimeExtraParams } : undefined,
+    {
+      preparedExtraParams: preparedRuntimeExtraParams,
+      providerRuntimeHandle: params.runtimePlan.providerRuntimeHandle,
+    },
   );
 }
 
@@ -250,12 +235,14 @@ function resolveCompactionProviderStream(params: {
   config?: OpenClawConfig;
   agentDir: string;
   effectiveWorkspace: string;
+  runtimePlan?: Pick<AgentRuntimePlan, "providerRuntimeHandle">;
 }) {
   return registerProviderStreamForModel({
     model: params.effectiveModel,
     cfg: params.config,
     agentDir: params.agentDir,
     workspaceDir: params.effectiveWorkspace,
+    providerRuntimeHandle: params.runtimePlan?.providerRuntimeHandle,
   });
 }
 
@@ -515,14 +502,12 @@ async function compactEmbeddedPiSessionDirectOnce(
   });
   const agentDir =
     params.agentDir ?? resolveAgentDir(params.config ?? {}, earlyAgentIds.sessionAgentId);
-  await ensureOpenClawModelsJson(params.config, agentDir, {
-    workspaceDir: resolvedWorkspace,
-  });
-  const { model, error, authStorage, modelRegistry } = await resolveModelAsync(
+  const { model, error, authStorage, modelRegistry } = await resolvePreparedRuntimeModelAsync(
     provider,
     modelId,
     agentDir,
     params.config,
+    { workspaceDir: resolvedWorkspace },
   );
   if (!model) {
     const reason = error ?? `Unknown model: ${provider}/${modelId}`;
@@ -693,44 +678,44 @@ async function compactEmbeddedPiSessionDirectOnce(
       });
 
     const runAbortController = new AbortController();
-    const toolsRaw = createOpenClawCodingTools({
-      exec: {
-        elevated: params.bashElevated,
-      },
-      sandbox,
-      messageProvider: resolvedMessageProvider,
-      agentAccountId: params.agentAccountId,
-      sessionKey: sandboxSessionKey,
-      runSessionKey:
-        params.sessionKey && params.sessionKey !== sandboxSessionKey
-          ? params.sessionKey
-          : undefined,
-      sessionId: params.sessionId,
-      runId: params.runId,
-      groupId: params.groupId,
-      groupChannel: params.groupChannel,
-      groupSpace: params.groupSpace,
-      spawnedBy: params.spawnedBy,
-      senderId: params.senderId,
-      senderName: params.senderName,
-      senderUsername: params.senderUsername,
-      senderE164: params.senderE164,
-      senderIsOwner: params.senderIsOwner,
-      allowGatewaySubagentBinding: params.allowGatewaySubagentBinding,
-      agentDir,
-      workspaceDir: effectiveWorkspace,
-      config: params.config,
-      abortSignal: runAbortController.signal,
-      modelProvider: model.provider,
-      modelId,
-      modelCompat: extractModelCompat(effectiveModel),
-      modelApi: model.api,
-      modelContextWindowTokens: ctxInfo.tokens,
-      modelAuthMode: resolveModelAuthMode(model.provider, params.config, undefined, {
-        workspaceDir: effectiveWorkspace,
-      }),
-    });
     const toolsEnabled = supportsModelTools(runtimeModel);
+    const toolsRaw = toolsEnabled
+      ? createOpenClawCodingTools({
+          exec: {
+            elevated: params.bashElevated,
+          },
+          sandbox,
+          messageProvider: resolvedMessageProvider,
+          agentAccountId: params.agentAccountId,
+          sessionKey: sandboxSessionKey,
+          runSessionKey:
+            params.sessionKey && params.sessionKey !== sandboxSessionKey
+              ? params.sessionKey
+              : undefined,
+          sessionId: params.sessionId,
+          runId: params.runId,
+          groupId: params.groupId,
+          groupChannel: params.groupChannel,
+          groupSpace: params.groupSpace,
+          spawnedBy: params.spawnedBy,
+          senderId: params.senderId,
+          senderName: params.senderName,
+          senderUsername: params.senderUsername,
+          senderE164: params.senderE164,
+          senderIsOwner: params.senderIsOwner,
+          allowGatewaySubagentBinding: params.allowGatewaySubagentBinding,
+          agentDir,
+          workspaceDir: effectiveWorkspace,
+          config: params.config,
+          abortSignal: runAbortController.signal,
+          modelProvider: model.provider,
+          modelId,
+          modelCompat: extractModelCompat(effectiveModel),
+          modelApi: model.api,
+          modelContextWindowTokens: ctxInfo.tokens,
+          preparedToolPlanning: runtimePlan.tools.preparedPlanning,
+        })
+      : [];
     const runtimePlanModelContext = {
       workspaceDir: effectiveWorkspace,
       modelApi: model.api,
@@ -927,22 +912,17 @@ async function compactEmbeddedPiSessionDirectOnce(
           promptContribution,
         });
       return createSystemPromptOverride(
-        transformProviderSystemPrompt({
-          provider,
+        runtimePlan.prompt.transformSystemPrompt({
           config: params.config,
+          agentDir,
           workspaceDir: effectiveWorkspace,
-          context: {
-            config: params.config,
-            agentDir,
-            workspaceDir: effectiveWorkspace,
-            provider,
-            modelId,
-            promptMode,
-            runtimeChannel,
-            runtimeCapabilities,
-            agentId: sessionAgentId,
-            systemPrompt: builtSystemPrompt,
-          },
+          provider,
+          modelId,
+          promptMode,
+          runtimeChannel,
+          runtimeCapabilities,
+          agentId: sessionAgentId,
+          systemPrompt: builtSystemPrompt,
         }),
       );
     };
@@ -956,13 +936,14 @@ async function compactEmbeddedPiSessionDirectOnce(
       }),
     });
     try {
+      const transcriptPolicy = runtimePlan.transcript.resolvePolicy(runtimePlanModelContext);
       await repairSessionFileIfNeeded({
         sessionFile: params.sessionFile,
         debug: (message) => log.debug(message),
+        trimTrailingAssistantMessages: shouldPersistStrictTurnSessionRepair(transcriptPolicy),
         warn: (message) => log.warn(message),
       });
       await prewarmSessionFile(params.sessionFile);
-      const transcriptPolicy = runtimePlan.transcript.resolvePolicy(runtimePlanModelContext);
       const sessionManager = guardSessionManager(SessionManager.open(params.sessionFile), {
         agentId: sessionAgentId,
         sessionKey: params.sessionKey,
@@ -1002,35 +983,14 @@ async function compactEmbeddedPiSessionDirectOnce(
         provider,
         modelId,
         model,
+        workspaceDir: effectiveWorkspace,
+        env: process.env,
+        providerRuntimeHandle: runtimePlan.providerRuntimeHandle,
       });
-      const resourceLoader = new DefaultResourceLoader({
-        cwd: resolvedWorkspace,
-        agentDir,
-        settingsManager,
+      const resourceLoader = createEmbeddedPiResourceLoader({
         extensionFactories,
       });
       await resourceLoader.reload();
-      // DefaultResourceLoader.reload() rehydrates settings from disk and can drop OpenClaw
-      // compaction overrides applied in createPreparedEmbeddedPiSettingsManager — same
-      // rehydration also restores Pi's auto-compaction (openclaw#75799), so re-apply
-      // both guards. effectiveModel.baseUrl matches the surrounding scope so
-      // auth-profile-injected baseUrls reach the endpoint-class detector.
-      applyPiCompactionSettingsFromConfig({
-        settingsManager,
-        cfg: params.config,
-        contextTokenBudget: ctxInfo.tokens,
-      });
-      // contextEngineInfo is intentionally omitted: this guard runs inside the
-      // compaction LLM session, which is not the user-facing agent session and
-      // has no associated context engine.
-      applyPiAutoCompactionGuard({
-        settingsManager,
-        silentOverflowProneProvider: isSilentOverflowProneModel({
-          provider,
-          modelId,
-          baseUrl: effectiveModel.baseUrl ?? undefined,
-        }),
-      });
 
       const { customTools } = splitSdkTools({
         tools: effectiveTools,
@@ -1045,6 +1005,7 @@ async function compactEmbeddedPiSessionDirectOnce(
         config: params.config,
         agentDir,
         effectiveWorkspace,
+        runtimePlan,
       });
       const shouldUseWebSocketTransport = shouldUseOpenAIWebSocketTransport({
         provider,
@@ -1120,6 +1081,7 @@ async function compactEmbeddedPiSessionDirectOnce(
             sessionManager,
             sessionId: params.sessionId,
             policy: transcriptPolicy,
+            runtimeHandle: runtimePlan.providerRuntimeHandle,
           });
           const validated = await validateReplayTurns({
             messages: prior,
@@ -1132,6 +1094,7 @@ async function compactEmbeddedPiSessionDirectOnce(
             model,
             sessionId: params.sessionId,
             policy: transcriptPolicy,
+            runtimeHandle: runtimePlan.providerRuntimeHandle,
           });
           const dedupedValidated = dedupeDuplicateUserMessagesForCompaction(validated);
           // Apply validated transcript to the live session even when no history limit is configured,

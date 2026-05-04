@@ -658,6 +658,7 @@ type ApplyExtraParamsContext = {
   effectiveExtraParams: Record<string, unknown>;
   resolvedExtraParams?: Record<string, unknown>;
   override?: Record<string, unknown>;
+  providerRuntimeHandle?: ProviderRuntimePluginHandle;
 };
 
 function applyPrePluginStreamWrappers(ctx: ApplyExtraParamsContext): void {
@@ -776,14 +777,20 @@ export function applyExtraParamsToAgent(
   model?: ProviderRuntimeModel,
   agentDir?: string,
   resolvedTransport?: SupportedTransport,
-  options?: { preparedExtraParams?: Record<string, unknown> },
+  options?: {
+    preparedExtraParams?: Record<string, unknown>;
+    providerRuntimeHandle?: ProviderRuntimePluginHandle;
+  },
 ): { effectiveExtraParams: Record<string, unknown> } {
-  const resolvedExtraParams = resolveExtraParams({
-    cfg,
-    provider,
-    modelId,
-    agentId,
-  });
+  const resolvedExtraParams =
+    options?.preparedExtraParams === undefined
+      ? resolveExtraParams({
+          cfg,
+          provider,
+          modelId,
+          agentId,
+        })
+      : undefined;
   const override =
     extraParamsOverride && Object.keys(extraParamsOverride).length > 0
       ? Object.fromEntries(
@@ -804,6 +811,7 @@ export function applyExtraParamsToAgent(
       resolvedExtraParams,
       model,
       resolvedTransport,
+      providerRuntimeHandle: options?.providerRuntimeHandle,
     });
   const wrapperContext: ApplyExtraParamsContext = {
     agent,
@@ -817,12 +825,14 @@ export function applyExtraParamsToAgent(
     effectiveExtraParams,
     resolvedExtraParams,
     override,
+    providerRuntimeHandle: options?.providerRuntimeHandle,
   };
 
   const providerStreamBase = agent.streamFn;
   const pluginWrappedStreamFn = providerRuntimeDeps.wrapProviderStreamFn({
     provider,
     config: cfg,
+    runtimeHandle: options?.providerRuntimeHandle,
     context: {
       config: cfg,
       agentDir,

@@ -255,6 +255,11 @@ function sortSpeechProvidersForAutoSelection(
   });
 }
 
+function resolveSpeechProvidersForAutoSelection(cfg?: OpenClawConfig) {
+  const loadedProviders = sortSpeechProvidersForAutoSelection(cfg, { loadedOnly: true });
+  return loadedProviders.length > 0 ? loadedProviders : sortSpeechProvidersForAutoSelection(cfg);
+}
+
 function resolveTtsRuntimeConfig(cfg: OpenClawConfig): OpenClawConfig {
   return (
     selectApplicableRuntimeConfig({
@@ -631,7 +636,7 @@ export function getTtsProvider(config: ResolvedTtsConfig, prefsPath: string): Tt
   }
 
   const effectiveCfg = config.sourceConfig;
-  for (const provider of sortSpeechProvidersForAutoSelection(effectiveCfg, { loadedOnly: true })) {
+  for (const provider of resolveSpeechProvidersForAutoSelection(effectiveCfg)) {
     if (
       provider.isConfigured({
         cfg: effectiveCfg,
@@ -842,7 +847,7 @@ export function resolveTtsProviderOrder(primary: TtsProvider, cfg?: OpenClawConf
   const effectiveCfg = cfg ? resolveTtsRuntimeConfig(cfg) : undefined;
   const normalizedPrimary = canonicalizeSpeechProviderId(primary, effectiveCfg) ?? primary;
   const ordered = new Set<TtsProvider>([normalizedPrimary]);
-  for (const provider of sortSpeechProvidersForAutoSelection(effectiveCfg, { loadedOnly: true })) {
+  for (const provider of resolveSpeechProvidersForAutoSelection(effectiveCfg)) {
     const normalized = provider.id;
     if (normalized !== normalizedPrimary) {
       ordered.add(normalized);

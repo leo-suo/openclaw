@@ -50,6 +50,7 @@ import {
   loadModelCatalog,
   modelSupportsVision,
   resolveAgentDir,
+  resolveModelCatalogScope,
   resolveDefaultModelForAgent,
 } from "./bot-message-dispatch.agent.runtime.js";
 import { pruneStickerMediaFromContext } from "./bot-message-dispatch.media.js";
@@ -106,8 +107,15 @@ const DRAFT_MIN_INITIAL_CHARS = 30;
 
 async function resolveStickerVisionSupport(cfg: OpenClawConfig, agentId: string) {
   try {
-    const catalog = await loadModelCatalog({ config: cfg });
     const defaultModel = resolveDefaultModelForAgent({ cfg, agentId });
+    const catalog = await loadModelCatalog({
+      config: cfg,
+      ...resolveModelCatalogScope({
+        cfg,
+        provider: defaultModel.provider,
+        model: defaultModel.model,
+      }),
+    });
     const entry = findModelInCatalog(catalog, defaultModel.provider, defaultModel.model);
     if (!entry) {
       return false;

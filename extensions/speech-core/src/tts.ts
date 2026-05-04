@@ -34,6 +34,7 @@ import {
 import {
   canonicalizeSpeechProviderId,
   getSpeechProvider,
+  listLoadedSpeechProviders,
   listSpeechProviders,
   normalizeSpeechProviderId,
   normalizeTtsAutoMode,
@@ -239,8 +240,12 @@ function resolveModelOverridePolicy(
   };
 }
 
-function sortSpeechProvidersForAutoSelection(cfg?: OpenClawConfig) {
-  return listSpeechProviders(cfg).toSorted((left, right) => {
+function sortSpeechProvidersForAutoSelection(
+  cfg?: OpenClawConfig,
+  options?: { loadedOnly?: boolean },
+) {
+  const providers = options?.loadedOnly ? listLoadedSpeechProviders(cfg) : listSpeechProviders(cfg);
+  return providers.toSorted((left, right) => {
     const leftOrder = left.autoSelectOrder ?? Number.MAX_SAFE_INTEGER;
     const rightOrder = right.autoSelectOrder ?? Number.MAX_SAFE_INTEGER;
     if (leftOrder !== rightOrder) {
@@ -248,10 +253,6 @@ function sortSpeechProvidersForAutoSelection(cfg?: OpenClawConfig) {
     }
     return left.id.localeCompare(right.id);
   });
-}
-
-function _resolveRegistryDefaultSpeechProviderId(cfg?: OpenClawConfig): TtsProvider {
-  return sortSpeechProvidersForAutoSelection(cfg)[0]?.id ?? "";
 }
 
 function resolveTtsRuntimeConfig(cfg: OpenClawConfig): OpenClawConfig {
@@ -630,7 +631,7 @@ export function getTtsProvider(config: ResolvedTtsConfig, prefsPath: string): Tt
   }
 
   const effectiveCfg = config.sourceConfig;
-  for (const provider of sortSpeechProvidersForAutoSelection(effectiveCfg)) {
+  for (const provider of sortSpeechProvidersForAutoSelection(effectiveCfg, { loadedOnly: true })) {
     if (
       provider.isConfigured({
         cfg: effectiveCfg,
@@ -841,7 +842,7 @@ export function resolveTtsProviderOrder(primary: TtsProvider, cfg?: OpenClawConf
   const effectiveCfg = cfg ? resolveTtsRuntimeConfig(cfg) : undefined;
   const normalizedPrimary = canonicalizeSpeechProviderId(primary, effectiveCfg) ?? primary;
   const ordered = new Set<TtsProvider>([normalizedPrimary]);
-  for (const provider of sortSpeechProvidersForAutoSelection(effectiveCfg)) {
+  for (const provider of sortSpeechProvidersForAutoSelection(effectiveCfg, { loadedOnly: true })) {
     const normalized = provider.id;
     if (normalized !== normalizedPrimary) {
       ordered.add(normalized);

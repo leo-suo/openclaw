@@ -103,6 +103,7 @@ Docs: https://docs.openclaw.ai
 - Gateway/performance: avoid importing `jiti` on native-loadable plugin startup paths, so compiled bundled plugin surfaces do not pay source-transform loader cost unless fallback loading is actually needed.
 - Gateway/diagnostics: add startup phase spans, active work labels, stale terminal bridge markers, and opt-in sync-I/O tracing in `pnpm gateway:watch` so slow Gateway turns are easier to attribute from logs and stability diagnostics.
 - Plugins/loader: preserve real compiled plugin module evaluation errors on the native fast path instead of treating every thrown `.js` module as a source-transform fallback miss. Thanks @vincentkoc.
+- Agents/Gateway performance: reuse prepared runtime model/auth/provider state across reply execution, compaction, BTW side questions, TTS summarization, PDF/image understanding, and configured capability provider lookup to cut repeated request-time discovery and plugin loading. Thanks @mcaxtr.
 - QA/Mantis: add `pnpm openclaw qa mantis slack-desktop-smoke` to run Slack live QA inside a Crabbox VNC desktop, open Slack Web, and capture desktop screenshots beside the Slack QA artifacts.
 - QA/Mantis: add an opt-in Discord thread attachment before/after scenario that creates a real thread, calls `message.thread-reply` with `filePath`, and captures baseline/candidate screenshot evidence.
 - Discord: preserve `filePath` and `path` attachments when replying to a thread with the message tool.

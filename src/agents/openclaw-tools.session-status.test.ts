@@ -30,6 +30,7 @@ const emptyPluginMetadataSnapshot = vi.hoisted(() => ({
   configFingerprint: "session-status-test-empty-plugin-metadata",
   plugins: [],
 }));
+const loadModelCatalogMock = vi.hoisted(() => vi.fn());
 
 const createMockConfig = () => ({
   session: { mainKey: "main", scope: "per-sender" },
@@ -134,21 +135,7 @@ async function createConfigModuleMock() {
 
 function createModelCatalogModuleMock() {
   return {
-    loadModelCatalog: async () => [
-      {
-        provider: "anthropic",
-        id: "claude-sonnet-4-6",
-        name: "Claude Sonnet 4.6",
-        contextWindow: 200000,
-      },
-      {
-        provider: "openai",
-        id: "gpt-5.4",
-        name: "GPT-5.4",
-        reasoning: true,
-        contextWindow: 400000,
-      },
-    ],
+    loadModelCatalog: loadModelCatalogMock,
   };
 }
 
@@ -245,6 +232,7 @@ vi.mock("../gateway/session-utils.js", createGatewaySessionUtilsModuleMock);
 vi.mock("../config/config.js", createConfigModuleMock);
 vi.mock("../agents/model-catalog.js", createModelCatalogModuleMock);
 vi.mock("../agents/provider-model-normalization.runtime.js", () => ({
+  getProviderModelNormalizationRuntimeCacheKey: () => "test-runtime",
   normalizeProviderModelIdWithRuntime: () => undefined,
 }));
 vi.mock("../plugins/current-plugin-metadata-snapshot.js", () => ({
@@ -298,6 +286,22 @@ function resetSessionStore(store: Record<string, SessionEntry>) {
   resolveEnvApiKeyMock.mockReturnValue(null);
   resolveUsableCustomProviderApiKeyMock.mockReset();
   resolveUsableCustomProviderApiKeyMock.mockReturnValue(null);
+  loadModelCatalogMock.mockReset();
+  loadModelCatalogMock.mockResolvedValue([
+    {
+      provider: "anthropic",
+      id: "claude-sonnet-4-6",
+      name: "Claude Sonnet 4.6",
+      contextWindow: 200000,
+    },
+    {
+      provider: "openai",
+      id: "gpt-5.4",
+      name: "GPT-5.4",
+      reasoning: true,
+      contextWindow: 400000,
+    },
+  ]);
   loadSessionStoreMock.mockClear();
   updateSessionStoreMock.mockClear();
   callGatewayMock.mockClear();
@@ -902,6 +906,11 @@ describe("session_status tool", () => {
     );
     expect(saved.sessionId).toBeTypeOf("string");
     expect(saved.sessionId.trim().length).toBeGreaterThan(0);
+    expect(loadModelCatalogMock).toHaveBeenCalledWith({
+      config: mockConfig,
+      providerRefs: ["anthropic"],
+      modelRefs: ["anthropic/claude-sonnet-4-6", "claude-sonnet-4-6"],
+    });
   });
 
   it("materializes a valid persisted session entry when the default implicit current fallback mutates model state", async () => {
@@ -1386,6 +1395,11 @@ describe("session_status tool", () => {
           }),
         }),
       );
+      expect(loadModelCatalogMock).toHaveBeenCalledWith({
+        config: mockConfig,
+        providerRefs: ["openai"],
+        modelRefs: ["openai/gpt-5.4", "gpt-5.4"],
+      });
     } finally {
       mockConfig = savedConfig;
     }

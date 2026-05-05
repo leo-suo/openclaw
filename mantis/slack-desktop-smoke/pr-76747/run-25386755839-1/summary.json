@@ -1,0 +1,19 @@
+{
+  "artifacts": {
+    "reportPath": "/home/runner/work/openclaw/openclaw/.artifacts/qa-e2e/mantis/slack-desktop-smoke-worktrees/candidate/.artifacts/qa-e2e/mantis/slack-desktop-smoke/mantis-slack-desktop-smoke-report.md",
+    "summaryPath": "/home/runner/work/openclaw/openclaw/.artifacts/qa-e2e/mantis/slack-desktop-smoke-worktrees/candidate/.artifacts/qa-e2e/mantis/slack-desktop-smoke/mantis-slack-desktop-smoke-summary.json"
+  },
+  "crabbox": {
+    "bin": "crabbox",
+    "createdLease": true,
+    "id": "unallocated",
+    "provider": "hetzner",
+    "vncCommand": "unallocated"
+  },
+  "error": "crabbox warmup --provider hetzner --desktop --browser --class standard --idle-timeout 45m --ttl 120m failed with exit code 5",
+  "finishedAt": "2026-05-05T17:23:11.259Z",
+  "outputDir": "/home/runner/work/openclaw/openclaw/.artifacts/qa-e2e/mantis/slack-desktop-smoke-worktrees/candidate/.artifacts/qa-e2e/mantis/slack-desktop-smoke",
+  "remoteOutputDir": "/tmp/openclaw-mantis-slack-desktop-2026-05-05T15-53-00-738Z",
+  "startedAt": "2026-05-05T15:53:00.738Z",
+  "status": "fail"
+}

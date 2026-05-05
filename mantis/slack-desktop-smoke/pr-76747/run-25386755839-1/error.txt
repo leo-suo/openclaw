@@ -1,0 +1,1 @@
+crabbox warmup --provider hetzner --desktop --browser --class standard --idle-timeout 45m --ttl 120m failed with exit code 5

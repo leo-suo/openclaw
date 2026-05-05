@@ -1,0 +1,175 @@
+remote pwd: /work/crabbox/cbx_c67b7101e17b/candidate
+! Corepack is about to download https://registry.npmjs.org/pnpm/-/pnpm-10.33.2.tgz
+Scope: all 125 workspace projects
+Lockfile is up to date, resolution step is skipped
+Packages: +1291
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 0, reused 0, downloaded 1, added 0
+Progress: resolved 0, reused 0, downloaded 154, added 73
+Progress: resolved 0, reused 0, downloaded 472, added 461
+Progress: resolved 0, reused 0, downloaded 780, added 799
+Packages are hard linked from the content-addressable store to the virtual store.
+  Content-addressable store is at: /home/crabbox/.local/share/pnpm/store/v10
+  Virtual store is at:             node_modules/.pnpm
+Progress: resolved 0, reused 0, downloaded 954, added 988
+Progress: resolved 0, reused 0, downloaded 1233, added 1265
+Progress: resolved 0, reused 0, downloaded 1244, added 1291
+Progress: resolved 0, reused 0, downloaded 1244, added 1291, done
+node_modules/protobufjs postinstall$ node scripts/postinstall
+node_modules/esbuild postinstall$ node install.js
+node_modules/protobufjs postinstall: Done
+node_modules/@discordjs/opus install$ node-pre-gyp install --fallback-to-build
+node_modules/esbuild postinstall: Done
+node_modules/sharp install$ node install/check.js || npm run build
+node_modules/@discordjs/opus install: node-pre-gyp info it worked if it ends with ok
+node_modules/@discordjs/opus install: node-pre-gyp info using node-pre-gyp@0.4.5
+node_modules/@discordjs/opus install: node-pre-gyp info using node@22.22.2 | linux | x64
+node_modules/@tloncorp/tlon-skill postinstall$ node scripts/postinstall.js
+node_modules/@discordjs/opus install: (node:8929) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+node_modules/@discordjs/opus install: (Use `node --trace-deprecation ...` to show where the warning was created)
+node_modules/@discordjs/opus install: node-pre-gyp info check checked for "/work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@discordjs/opus/prebuild/node-v127-napi-v3-linux-x64-glibc-2.39/opus.node" (not found)
+node_modules/@discordjs/opus install: node-pre-gyp http GET https://github.com/discordjs/opus/releases/download/v0.10.0/opus-v0.10.0-node-v127-napi-v3-linux-x64-glibc-2.39.tar.gz
+node_modules/sharp install: Done
+.../@matrix-org/matrix-sdk-crypto-nodejs postinstall$ node download-lib.js
+node_modules/@discordjs/opus install: node-pre-gyp ERR! install response status 404 Not Found on https://github.com/discordjs/opus/releases/download/v0.10.0/opus-v0.10.0-node-v127-napi-v3-linux-x64-glibc-2.39.tar.gz 
+node_modules/@discordjs/opus install: node-pre-gyp WARN Pre-built binaries not installable for @discordjs/opus@0.10.0 and node@22.22.2 (node-v127 ABI, glibc) (falling back to source compile with node-gyp) 
+node_modules/@discordjs/opus install: node-pre-gyp WARN Hit error response status 404 Not Found on https://github.com/discordjs/opus/releases/download/v0.10.0/opus-v0.10.0-node-v127-napi-v3-linux-x64-glibc-2.39.tar.gz 
+node_modules/@discordjs/opus install: gyp info it worked if it ends with ok
+node_modules/@discordjs/opus install: gyp info using node-gyp@11.5.0
+node_modules/@discordjs/opus install: gyp info using node@22.22.2 | linux | x64
+node_modules/@discordjs/opus install: gyp info ok 
+node_modules/@tloncorp/tlon-skill postinstall: [tlon-skill] Binary ready: /work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@tloncorp/tlon-skill-linux-x64/tlon
+node_modules/@tloncorp/tlon-skill postinstall: Done
+node_modules/@discordjs/opus install: gyp info it worked if it ends with ok
+node_modules/@discordjs/opus install: gyp info using node-gyp@11.5.0
+node_modules/@discordjs/opus install: gyp info using node@22.22.2 | linux | x64
+.../@matrix-org/matrix-sdk-crypto-nodejs postinstall: Downloading lib matrix-sdk-crypto.linux-x64-gnu.node from https://github.com/matrix-org/matrix-rust-sdk-crypto-nodejs/releases/download/v0.5.1/matrix-sdk-crypto.linux-x64-gnu.node
+node_modules/@discordjs/opus install: gyp info find Python using Python version 3.12.3 found at "/usr/bin/python3"
+node_modules/@discordjs/opus install: gyp http GET https://nodejs.org/download/release/v22.22.2/node-v22.22.2-headers.tar.gz
+node_modules/@discordjs/opus install: gyp http 200 https://nodejs.org/download/release/v22.22.2/node-v22.22.2-headers.tar.gz
+.../@matrix-org/matrix-sdk-crypto-nodejs postinstall: Download Completed
+.../@matrix-org/matrix-sdk-crypto-nodejs postinstall: Done
+node_modules/@discordjs/opus install: gyp http GET https://nodejs.org/download/release/v22.22.2/SHASUMS256.txt
+node_modules/@discordjs/opus install: gyp http 200 https://nodejs.org/download/release/v22.22.2/SHASUMS256.txt
+node_modules/@discordjs/opus install: gyp info spawn /usr/bin/python3
+node_modules/@discordjs/opus install: gyp info spawn args [
+node_modules/@discordjs/opus install: gyp info spawn args '/home/crabbox/.cache/node/corepack/v1/pnpm/10.33.2/dist/node_modules/node-gyp/gyp/gyp_main.py',
+node_modules/@discordjs/opus install: gyp info spawn args 'binding.gyp',
+node_modules/@discordjs/opus install: gyp info spawn args '-f',
+node_modules/@discordjs/opus install: gyp info spawn args 'make',
+node_modules/@discordjs/opus install: gyp info spawn args '-I',
+node_modules/@discordjs/opus install: gyp info spawn args '/work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@discordjs/opus/build/config.gypi',
+node_modules/@discordjs/opus install: gyp info spawn args '-I',
+node_modules/@discordjs/opus install: gyp info spawn args '/home/crabbox/.cache/node/corepack/v1/pnpm/10.33.2/dist/node_modules/node-gyp/addon.gypi',
+node_modules/@discordjs/opus install: gyp info spawn args '-I',
+node_modules/@discordjs/opus install: gyp info spawn args '/home/crabbox/.cache/node-gyp/22.22.2/include/node/common.gypi',
+node_modules/@discordjs/opus install: gyp info spawn args '-Dlibrary=shared_library',
+node_modules/@discordjs/opus install: gyp info spawn args '-Dvisibility=default',
+node_modules/@discordjs/opus install: gyp info spawn args '-Dnode_root_dir=/home/crabbox/.cache/node-gyp/22.22.2',
+node_modules/@discordjs/opus install: gyp info spawn args '-Dnode_gyp_dir=/home/crabbox/.cache/node/corepack/v1/pnpm/10.33.2/dist/node_modules/node-gyp',
+node_modules/@discordjs/opus install: gyp info spawn args '-Dnode_lib_file=/home/crabbox/.cache/node-gyp/22.22.2/<(target_arch)/node.lib',
+node_modules/@discordjs/opus install: gyp info spawn args '-Dmodule_root_dir=/work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@discordjs/opus',
+node_modules/@discordjs/opus install: gyp info spawn args '-Dnode_engine=v8',
+node_modules/@discordjs/opus install: gyp info spawn args '--depth=.',
+node_modules/@discordjs/opus install: gyp info spawn args '--no-parallel',
+node_modules/@discordjs/opus install: gyp info spawn args '--generator-output',
+node_modules/@discordjs/opus install: gyp info spawn args 'build',
+node_modules/@discordjs/opus install: gyp info spawn args '-Goutput_dir=.'
+node_modules/@discordjs/opus install: gyp info spawn args ]
+node_modules/@discordjs/opus install: <string>:43: SyntaxWarning: invalid escape sequence '\$'
+node_modules/@discordjs/opus install: gyp info ok 
+node_modules/@discordjs/opus install: gyp info it worked if it ends with ok
+node_modules/@discordjs/opus install: gyp info using node-gyp@11.5.0
+node_modules/@discordjs/opus install: gyp info using node@22.22.2 | linux | x64
+node_modules/@discordjs/opus install: gyp ERR! build error 
+node_modules/@discordjs/opus install: gyp ERR! stack Error: not found: make
+node_modules/@discordjs/opus install: gyp ERR! stack at getNotFoundError (/home/crabbox/.cache/node/corepack/v1/pnpm/10.33.2/dist/node_modules/which/lib/index.js:16:17)
+node_modules/@discordjs/opus install: gyp ERR! stack at which (/home/crabbox/.cache/node/corepack/v1/pnpm/10.33.2/dist/node_modules/which/lib/index.js:77:9)
+node_modules/@discordjs/opus install: gyp ERR! stack at async doWhich (/home/crabbox/.cache/node/corepack/v1/pnpm/10.33.2/dist/node_modules/node-gyp/lib/build.js:120:22)
+node_modules/@discordjs/opus install: gyp ERR! stack at async loadConfigGypi (/home/crabbox/.cache/node/corepack/v1/pnpm/10.33.2/dist/node_modules/node-gyp/lib/build.js:78:7)
+node_modules/@discordjs/opus install: gyp ERR! stack at async build (/home/crabbox/.cache/node/corepack/v1/pnpm/10.33.2/dist/node_modules/node-gyp/lib/build.js:36:3)
+node_modules/@discordjs/opus install: gyp ERR! stack at async run (/home/crabbox/.cache/node/corepack/v1/pnpm/10.33.2/dist/node_modules/node-gyp/bin/node-gyp.js:81:18)
+node_modules/@discordjs/opus install: gyp ERR! System Linux 6.8.0-90-generic
+node_modules/@discordjs/opus install: gyp ERR! command "/usr/bin/node" "/home/crabbox/.cache/node/corepack/v1/pnpm/10.33.2/dist/node_modules/node-gyp/bin/node-gyp.js" "build" "--fallback-to-build" "--module=/work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@discordjs/opus/prebuild/node-v127-napi-v3-linux-x64-glibc-2.39/opus.node" "--module_name=opus" "--module_path=/work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@discordjs/opus/prebuild/node-v127-napi-v3-linux-x64-glibc-2.39" "--napi_version=10" "--node_abi_napi=napi" "--napi_build_version=3" "--node_napi_label=napi-v3"
+node_modules/@discordjs/opus install: gyp ERR! cwd /work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@discordjs/opus
+node_modules/@discordjs/opus install: gyp ERR! node -v v22.22.2
+node_modules/@discordjs/opus install: gyp ERR! node-gyp -v v11.5.0
+node_modules/@discordjs/opus install: gyp ERR! not ok 
+node_modules/@discordjs/opus install: node-pre-gyp ERR! build error 
+node_modules/@discordjs/opus install: node-pre-gyp ERR! stack Error: Failed to execute '/usr/bin/node /home/crabbox/.cache/node/corepack/v1/pnpm/10.33.2/dist/node_modules/node-gyp/bin/node-gyp.js build --fallback-to-build --module=/work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@discordjs/opus/prebuild/node-v127-napi-v3-linux-x64-glibc-2.39/opus.node --module_name=opus --module_path=/work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@discordjs/opus/prebuild/node-v127-napi-v3-linux-x64-glibc-2.39 --napi_version=10 --node_abi_napi=napi --napi_build_version=3 --node_napi_label=napi-v3' (1)
+node_modules/@discordjs/opus install: node-pre-gyp ERR! stack     at ChildProcess.<anonymous> (/work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@discordjs/node-pre-gyp/lib/util/compile.js:85:20)
+node_modules/@discordjs/opus install: node-pre-gyp ERR! stack     at ChildProcess.emit (node:events:519:28)
+node_modules/@discordjs/opus install: node-pre-gyp ERR! stack     at maybeClose (node:internal/child_process:1101:16)
+node_modules/@discordjs/opus install: node-pre-gyp ERR! stack     at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+node_modules/@discordjs/opus install: node-pre-gyp ERR! System Linux 6.8.0-90-generic
+node_modules/@discordjs/opus install: node-pre-gyp ERR! command "/usr/bin/node" "/work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@discordjs/opus/node_modules/.bin/node-pre-gyp" "install" "--fallback-to-build"
+node_modules/@discordjs/opus install: node-pre-gyp ERR! cwd /work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@discordjs/opus
+node_modules/@discordjs/opus install: node-pre-gyp ERR! node -v v22.22.2
+node_modules/@discordjs/opus install: node-pre-gyp ERR! node-pre-gyp -v v0.4.5
+node_modules/@discordjs/opus install: node-pre-gyp ERR! not ok 
+node_modules/@discordjs/opus install: Failed to execute '/usr/bin/node /home/crabbox/.cache/node/corepack/v1/pnpm/10.33.2/dist/node_modules/node-gyp/bin/node-gyp.js build --fallback-to-build --module=/work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@discordjs/opus/prebuild/node-v127-napi-v3-linux-x64-glibc-2.39/opus.node --module_name=opus --module_path=/work/crabbox/cbx_c67b7101e17b/candidate/node_modules/@discordjs/opus/prebuild/node-v127-napi-v3-linux-x64-glibc-2.39 --napi_version=10 --node_abi_napi=napi --napi_build_version=3 --node_napi_label=napi-v3' (1)
+node_modules/@discordjs/opus install: Failed
+node_modules/@google/genai preinstall$ echo 'preinstall: no-op'
+node_modules/@google/genai preinstall: preinstall: no-op
+node_modules/@google/genai preinstall: Done
+node_modules/@whiskeysockets/baileys preinstall$ node ./engine-requirements.js
+node_modules/@whiskeysockets/baileys preinstall: Done
+
+. preinstall$ node scripts/preinstall-package-manager-warning.mjs
+. preinstall: Done
+. postinstall$ node scripts/postinstall-bundled-plugins.mjs
+. postinstall: Done
+. prepare$ command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git config core.hooksPath git-hooks || exit 0
+. prepare: Done
+Done in 14.6s using pnpm v10.33.2
+
+> openclaw@2026.5.5 build /work/crabbox/cbx_c67b7101e17b/candidate
+> node scripts/build-all.mjs
+
+[build-all] canvas:a2ui:bundle
+
+> openclaw@2026.5.5 canvas:a2ui:bundle /work/crabbox/cbx_c67b7101e17b/candidate
+> node scripts/bundle-a2ui.mjs
+
+A2UI bundle up to date; skipping.
+[build-all] tsdown
+[build-all] check-cli-bootstrap-imports
+CLI bootstrap import guard passed.
+[build-all] runtime-postbuild
+runtime-postbuild: plugin SDK root alias completed in 0ms
+runtime-postbuild: bundled plugin metadata completed in 124ms
+runtime-postbuild: official channel catalog completed in 3ms
+runtime-postbuild: bundled plugin runtime overlay completed in 105ms
+runtime-postbuild: stable root runtime imports completed in 185ms
+runtime-postbuild: stable root runtime aliases completed in 31ms
+runtime-postbuild: legacy root runtime compat aliases completed in 3ms
+runtime-postbuild: legacy CLI exit compat chunks completed in 0ms
+runtime-postbuild: static extension assets completed in 11ms
+[build-all] build-stamp
+[build-all] runtime-postbuild-stamp
+[build-all] build:plugin-sdk:dts
+
+> openclaw@2026.5.5 build:plugin-sdk:dts /work/crabbox/cbx_c67b7101e17b/candidate
+> node scripts/run-tsgo.mjs -p tsconfig.plugin-sdk.dts.json --declaration true
+
+[build-all] write-plugin-sdk-entry-dts
+[build-all] check-plugin-sdk-exports
+OK: All 4 required plugin-sdk exports verified.
+[build-all] canvas-a2ui-copy
+[build-all] copy-hook-metadata
+[copy-hook-metadata] Copied 5 hook metadata files.
+[build-all] copy-export-html-templates
+[copy-export-html-templates] Copied 5 export-html assets.
+[build-all] write-build-info
+[build-all] write-cli-startup-metadata
+[build-all] write-cli-compat
+
+> openclaw@2026.5.5 openclaw /work/crabbox/cbx_c67b7101e17b/candidate
+> node scripts/run-node.mjs config patch --file /tmp/openclaw-mantis-slack-desktop-2026-05-05T18-31-25-208Z/slack.socket.patch.json5 --dry-run
+
+Dry run successful: 13 update(s) validated against $OPENCLAW_HOME/.openclaw/openclaw.json.
+
+> openclaw@2026.5.5 openclaw /work/crabbox/cbx_c67b7101e17b/candidate
+> node scripts/run-node.mjs config patch --file /tmp/openclaw-mantis-slack-desktop-2026-05-05T18-31-25-208Z/slack.socket.patch.json5
+
+Applied 13 config update(s). Restart the gateway to apply.

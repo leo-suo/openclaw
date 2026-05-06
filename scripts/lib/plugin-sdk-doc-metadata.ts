@@ -107,6 +107,12 @@ export const pluginSdkDocMetadata = {
   "provider-selection-runtime": {
     category: "provider",
   },
+  "provider-ai": {
+    category: "provider",
+  },
+  "provider-ai-oauth": {
+    category: "provider",
+  },
   "runtime-store": {
     category: "runtime",
   },
@@ -130,6 +136,9 @@ export const pluginSdkDocMetadata = {
   },
   "channel-test-helpers": {
     category: "utilities",
+  },
+  "agent-core": {
+    category: "runtime",
   },
   "agent-runtime-test-contracts": {
     category: "utilities",

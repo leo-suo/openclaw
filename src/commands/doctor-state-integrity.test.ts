@@ -8,7 +8,9 @@ import {
   resolveStorePath,
   resolveSessionTranscriptsDirForAgent,
 } from "../config/sessions/paths.js";
+import { loadSessionStore } from "../config/sessions/store.js";
 import type { SessionEntry } from "../config/sessions/types.js";
+import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
 import {
   clearTuiLastSessionPointers,
   moveHeartbeatMainSessionEntry,
@@ -161,6 +163,7 @@ describe("doctor state integrity oauth dir checks", () => {
   });
 
   afterEach(() => {
+    closeOpenClawStateDatabaseForTest();
     restoreEnv(envSnapshot);
     fs.rmSync(tempHome, { recursive: true, force: true });
   });
@@ -302,7 +305,7 @@ describe("doctor state integrity oauth dir checks", () => {
     await noteStateIntegrity(cfg, { confirmRuntimeRepair, note: noteMock });
 
     const storePath = resolveStorePath(cfg.session?.store, { agentId: "main" });
-    const persisted = JSON.parse(fs.readFileSync(storePath, "utf8")) as Record<
+    const persisted = loadSessionStore(storePath) as Record<
       string,
       { abortedLastRun?: boolean; updatedAt?: number }
     >;
@@ -542,7 +545,7 @@ describe("doctor state integrity oauth dir checks", () => {
     await noteStateIntegrity(cfg, { confirmRuntimeRepair, note: noteMock });
 
     const storePath = resolveStorePath(cfg.session?.store, { agentId: "main" });
-    const store = JSON.parse(fs.readFileSync(storePath, "utf8")) as Record<string, SessionEntry>;
+    const store = loadSessionStore(storePath);
     const recoveredKey = Object.keys(store).find((key) =>
       key.startsWith("agent:main:heartbeat-recovered-"),
     );

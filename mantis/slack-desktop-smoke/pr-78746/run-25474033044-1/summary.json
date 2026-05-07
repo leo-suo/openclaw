@@ -1,0 +1,65 @@
+{
+  "artifacts": {
+    "reportPath": "/home/runner/work/openclaw/openclaw/.artifacts/qa-e2e/mantis/slack-desktop-smoke-worktrees/candidate/.artifacts/qa-e2e/mantis/slack-desktop-smoke/mantis-slack-desktop-smoke-report.md",
+    "screenshotPath": "/home/runner/work/openclaw/openclaw/.artifacts/qa-e2e/mantis/slack-desktop-smoke-worktrees/candidate/.artifacts/qa-e2e/mantis/slack-desktop-smoke/slack-desktop-smoke.png",
+    "slackQaDir": "/home/runner/work/openclaw/openclaw/.artifacts/qa-e2e/mantis/slack-desktop-smoke-worktrees/candidate/.artifacts/qa-e2e/mantis/slack-desktop-smoke/slack-qa",
+    "summaryPath": "/home/runner/work/openclaw/openclaw/.artifacts/qa-e2e/mantis/slack-desktop-smoke-worktrees/candidate/.artifacts/qa-e2e/mantis/slack-desktop-smoke/mantis-slack-desktop-smoke-summary.json",
+    "videoPath": "/home/runner/work/openclaw/openclaw/.artifacts/qa-e2e/mantis/slack-desktop-smoke-worktrees/candidate/.artifacts/qa-e2e/mantis/slack-desktop-smoke/slack-desktop-smoke.mp4"
+  },
+  "crabbox": {
+    "bin": "crabbox",
+    "createdLease": true,
+    "id": "cbx_a082ddde5e25",
+    "provider": "aws",
+    "slug": "silver-crayfish",
+    "state": "active",
+    "vncCommand": "crabbox vnc --provider aws --id cbx_a082ddde5e25 --open"
+  },
+  "finishedAt": "2026-05-07T03:23:45.333Z",
+  "hydrateMode": "source",
+  "outputDir": "/home/runner/work/openclaw/openclaw/.artifacts/qa-e2e/mantis/slack-desktop-smoke-worktrees/candidate/.artifacts/qa-e2e/mantis/slack-desktop-smoke",
+  "remoteOutputDir": "/tmp/openclaw-mantis-slack-desktop-2026-05-07T03-20-07-183Z",
+  "slackUrl": "https://app.slack.com/client/T0B0KAN986T/C0B1R332Z2Q",
+  "startedAt": "2026-05-07T03:20:07.183Z",
+  "status": "pass",
+  "timings": {
+    "phases": [
+      {
+        "durationMs": 98723,
+        "finishedAt": "2026-05-07T03:21:45.909Z",
+        "name": "crabbox.warmup",
+        "startedAt": "2026-05-07T03:20:07.186Z",
+        "status": "pass"
+      },
+      {
+        "durationMs": 620,
+        "finishedAt": "2026-05-07T03:21:46.529Z",
+        "name": "crabbox.inspect",
+        "startedAt": "2026-05-07T03:21:45.909Z",
+        "status": "pass"
+      },
+      {
+        "durationMs": 289,
+        "finishedAt": "2026-05-07T03:21:46.818Z",
+        "name": "credentials.prepare",
+        "startedAt": "2026-05-07T03:21:46.529Z",
+        "status": "pass"
+      },
+      {
+        "durationMs": 113729,
+        "finishedAt": "2026-05-07T03:23:40.547Z",
+        "name": "crabbox.remote_run",
+        "startedAt": "2026-05-07T03:21:46.818Z",
+        "status": "accepted"
+      },
+      {
+        "durationMs": 4785,
+        "finishedAt": "2026-05-07T03:23:45.332Z",
+        "name": "artifacts.copy",
+        "startedAt": "2026-05-07T03:23:40.547Z",
+        "status": "pass"
+      }
+    ],
+    "totalMs": 218150
+  }
+}

@@ -125,7 +125,6 @@ const BASE_METHODS = [
   "sessions.abort",
   "sessions.patch",
   "sessions.pluginPatch",
-  "sessions.cleanup",
   "sessions.reset",
   "sessions.delete",
   "sessions.compact",

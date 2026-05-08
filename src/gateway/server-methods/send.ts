@@ -1,10 +1,9 @@
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { normalizeChannelId } from "../../channels/plugins/index.js";
-import { dispatchChannelMessageAction } from "../../channels/plugins/message-action-dispatch.js";
 import { createOutboundSendDeps } from "../../cli/deps.js";
 import { applyPluginAutoEnable } from "../../config/plugin-auto-enable.js";
 import type { OpenClawConfig } from "../../config/types.openclaw.js";
-import { resolveOutboundChannelPlugin } from "../../infra/outbound/channel-resolution.js";
+import { resolveOutboundChannelRuntime } from "../../infra/outbound/channel-resolution.js";
 import { resolveMessageChannelSelection } from "../../infra/outbound/channel-selection.js";
 import { deliverOutboundPayloads } from "../../infra/outbound/deliver.js";
 import {
@@ -326,8 +325,9 @@ export const sendHandlers: GatewayRequestHandlers = {
       return;
     }
     const { cfg, channel } = resolvedChannel;
-    const plugin = resolveOutboundChannelPlugin({ channel, cfg });
-    if (!plugin?.actions?.handleAction) {
+    const outboundRuntime = resolveOutboundChannelRuntime({ channel, cfg });
+    const actions = outboundRuntime?.actions;
+    if (!actions?.handleAction) {
       respond(
         false,
         undefined,
@@ -341,7 +341,7 @@ export const sendHandlers: GatewayRequestHandlers = {
 
     const work = (async (): Promise<InflightResult> => {
       try {
-        const handled = await dispatchChannelMessageAction({
+        const actionContext = {
           channel,
           action: request.action as never,
           cfg,
@@ -354,7 +354,22 @@ export const sendHandlers: GatewayRequestHandlers = {
           agentId: normalizeOptionalString(request.agentId) ?? undefined,
           toolContext: request.toolContext,
           dryRun: false,
-        });
+        };
+        if (
+          actions.requiresTrustedRequesterSender?.({
+            action: request.action as never,
+            toolContext: request.toolContext,
+          }) &&
+          !normalizeOptionalString(request.requesterSenderId)
+        ) {
+          throw new Error(
+            `Trusted sender identity is required for ${channel}:${request.action} in tool-driven contexts.`,
+          );
+        }
+        const handled =
+          actions.supportsAction && !actions.supportsAction({ action: request.action as never })
+            ? null
+            : await actions.handleAction?.(actionContext);
         if (!handled) {
           const error = errorShape(
             ErrorCodes.INVALID_REQUEST,
@@ -437,8 +452,8 @@ export const sendHandlers: GatewayRequestHandlers = {
     const replyToId = normalizeOptionalString(request.replyToId);
     const threadId = normalizeOptionalString(request.threadId);
     const outboundChannel = channel;
-    const plugin = resolveOutboundChannelPlugin({ channel, cfg });
-    if (!plugin) {
+    const outboundRuntime = resolveOutboundChannelRuntime({ channel, cfg });
+    if (!outboundRuntime) {
       respond(
         false,
         undefined,
@@ -499,6 +514,7 @@ export const sendHandlers: GatewayRequestHandlers = {
           resolvedTarget: idLikeTarget,
           replyToId,
           threadId,
+          runtime: outboundRuntime,
         });
         const providedSessionBaseKey =
           parseThreadSessionSuffix(providedSessionKey).baseSessionKey ?? providedSessionKey;
@@ -620,8 +636,8 @@ export const sendHandlers: GatewayRequestHandlers = {
       return;
     }
     const { cfg, channel } = resolvedChannel;
-    const plugin = resolveOutboundChannelPlugin({ channel, cfg });
-    const outbound = plugin?.outbound;
+    const outboundRuntime = resolveOutboundChannelRuntime({ channel, cfg });
+    const outbound = outboundRuntime?.outbound;
     if (
       typeof request.durationSeconds === "number" &&
       outbound?.supportsPollDurationSeconds !== true

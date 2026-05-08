@@ -42,6 +42,7 @@ import { emitDiagnosticEvent, type DiagnosticMessageDeliveryKind } from "../diag
 import { formatErrorMessage } from "../errors.js";
 import { throwIfAborted } from "./abort.js";
 import { resolveOutboundChannelMessageAdapter } from "./channel-resolution.js";
+import type { OutboundChannelRuntime } from "./channel-resolution.js";
 import type { OutboundDeliveryResult } from "./deliver-types.js";
 import {
   attachOutboundDeliveryCommitHook,
@@ -191,6 +192,7 @@ type ChannelHandlerParams = {
   forceDocument?: boolean;
   silent?: boolean;
   mediaAccess?: OutboundMediaAccess;
+  outboundRuntime?: OutboundChannelRuntime;
   gatewayClientScopes?: readonly string[];
   onPlatformSendStart?: () => Promise<void>;
 };
@@ -207,8 +209,9 @@ async function resolveChannelOutboundDirectiveOptions(params: {
 }
 
 async function createChannelHandler(params: ChannelHandlerParams): Promise<ChannelHandler> {
-  const outbound = await loadBootstrappedOutboundAdapter(params);
-  const message = resolveOutboundChannelMessageAdapter(params);
+  const outbound =
+    params.outboundRuntime?.outbound ?? (await loadBootstrappedOutboundAdapter(params));
+  const message = params.outboundRuntime?.message ?? resolveOutboundChannelMessageAdapter(params);
   const handler = createPluginHandler({ ...params, outbound, message });
   if (!handler) {
     throw new Error(`Outbound not configured for channel: ${params.channel}`);
@@ -288,9 +291,10 @@ export async function resolveOutboundDurableFinalDeliverySupport(params: {
   cfg: OpenClawConfig;
   channel: Exclude<OutboundChannel, "none">;
   requirements?: DurableFinalDeliveryRequirements;
+  runtime?: OutboundChannelRuntime;
 }): Promise<OutboundDurableDeliverySupport> {
-  const outbound = await loadBootstrappedOutboundAdapter(params);
-  const message = resolveOutboundChannelMessageAdapter(params);
+  const outbound = params.runtime?.outbound ?? (await loadBootstrappedOutboundAdapter(params));
+  const message = params.runtime?.message ?? resolveOutboundChannelMessageAdapter(params);
   if (!message?.send?.text && !outbound?.sendText) {
     return { ok: false, reason: "missing_outbound_handler" };
   }
@@ -619,6 +623,7 @@ type DeliverOutboundPayloadsCoreParams = {
   session?: OutboundSessionContext;
   mirror?: DeliveryMirror;
   silent?: boolean;
+  outboundRuntime?: OutboundChannelRuntime;
   gatewayClientScopes?: readonly string[];
 };
 
@@ -1235,7 +1240,12 @@ async function deliverOutboundPayloadsCore(
   params: DeliverOutboundPayloadsCoreRuntimeParams,
 ): Promise<OutboundDeliveryResult[]> {
   const { cfg, channel, to, payloads } = params;
-  const directiveOptions = await resolveChannelOutboundDirectiveOptions({ cfg, channel });
+  const directiveOptions = params.outboundRuntime?.outbound
+    ? {
+        extractMarkdownImages:
+          params.outboundRuntime.outbound.extractMarkdownImages === true ? true : undefined,
+      }
+    : await resolveChannelOutboundDirectiveOptions({ cfg, channel });
   const outboundPayloadPlan = createOutboundPayloadPlan(payloads, {
     cfg,
     sessionKey: params.session?.policyKey ?? params.session?.key,
@@ -1280,6 +1290,7 @@ async function deliverOutboundPayloadsCore(
     silent: params.silent,
     mediaAccess,
     gatewayClientScopes: params.gatewayClientScopes,
+    outboundRuntime: params.outboundRuntime,
     ...(params.onPlatformSendStart ? { onPlatformSendStart: params.onPlatformSendStart } : {}),
   });
   const configuredTextLimit = handler.chunker

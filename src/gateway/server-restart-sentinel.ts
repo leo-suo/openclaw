@@ -2,13 +2,14 @@ import { resolveSessionAgentId } from "../agents/agent-scope.js";
 import { finalizeInboundContext } from "../auto-reply/reply/inbound-context.js";
 import { dispatchReplyWithBufferedBlockDispatcher } from "../auto-reply/reply/provider-dispatcher.js";
 import type { ChatType } from "../channels/chat-type.js";
-import { getChannelPlugin, normalizeChannelId } from "../channels/plugins/index.js";
+import { normalizeChannelId } from "../channels/plugins/index.js";
 import { recordInboundSession } from "../channels/session.js";
 import type { CliDeps } from "../cli/deps.types.js";
 import { resolveMainSessionKeyFromConfig } from "../config/sessions.js";
 import { parseSessionThreadInfo } from "../config/sessions/thread-info.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { requestHeartbeat } from "../infra/heartbeat-wake.js";
+import { resolveOutboundChannelRuntime } from "../infra/outbound/channel-resolution.js";
 import { deliverOutboundPayloads } from "../infra/outbound/deliver.js";
 import { ackDelivery, enqueueDelivery, failDelivery } from "../infra/outbound/delivery-queue.js";
 import { buildOutboundSessionContext } from "../infra/outbound/session-context.js";
@@ -489,8 +490,9 @@ async function loadRestartSentinelStartupTask(params: {
       });
       if (resolved.ok) {
         resolvedTo = resolved.to;
+        const outboundRuntime = resolveOutboundChannelRuntime({ channel, cfg });
         const replyTransport =
-          getChannelPlugin(channel)?.threading?.resolveReplyTransport?.({
+          outboundRuntime?.resolveReplyTransport?.({
             cfg,
             accountId: origin?.accountId,
             threadId,

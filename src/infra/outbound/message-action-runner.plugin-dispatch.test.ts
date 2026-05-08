@@ -37,6 +37,7 @@ function readMediaAccess(call: Record<string, unknown>): Record<string, unknown>
 
 const mocks = vi.hoisted(() => ({
   resolveOutboundChannelPlugin: vi.fn(),
+  resolveOutboundChannelRuntime: vi.fn(),
   executeSendAction: vi.fn(),
   executePollAction: vi.fn(),
   callGatewayLeastPrivilege: vi.fn(),
@@ -45,6 +46,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("./channel-resolution.js", () => ({
   resolveOutboundChannelPlugin: mocks.resolveOutboundChannelPlugin,
+  resolveOutboundChannelRuntime: mocks.resolveOutboundChannelRuntime,
   resetOutboundChannelResolutionStateForTest: vi.fn(),
 }));
 
@@ -199,6 +201,23 @@ describe("runMessageAction plugin dispatch", () => {
       ({ channel }: { channel: string }) =>
         getActivePluginRegistry()?.channels.find((entry) => entry?.plugin?.id === channel)?.plugin,
     );
+    mocks.resolveOutboundChannelRuntime.mockReset();
+    mocks.resolveOutboundChannelRuntime.mockImplementation(({ channel }: { channel: string }) => {
+      const plugin = mocks.resolveOutboundChannelPlugin({ channel });
+      return plugin
+        ? {
+            id: plugin.id,
+            label: plugin.meta?.label ?? plugin.id,
+            chatTypes: plugin.capabilities?.chatTypes ?? [],
+            actions: plugin.actions,
+            outbound: plugin.outbound,
+            normalizeTarget: plugin.messaging?.normalizeTarget,
+            looksLikeTargetId: plugin.messaging?.targetResolver?.looksLikeId,
+            resolveMessagingTargetFallback: plugin.messaging?.targetResolver?.resolveTarget,
+            resolveAutoThreadId: plugin.threading?.resolveAutoThreadId,
+          }
+        : undefined;
+    });
     mocks.executeSendAction.mockReset();
     mocks.executeSendAction.mockImplementation(
       async ({ ctx }: { ctx: Parameters<typeof executePluginAction>[0]["ctx"] }) =>

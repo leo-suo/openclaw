@@ -686,6 +686,7 @@ async function compactEmbeddedPiSessionDirectOnce(
           },
           sandbox,
           messageProvider: resolvedMessageProvider,
+          outboundChannelRuntime: params.outboundChannelRuntime,
           agentAccountId: params.agentAccountId,
           sessionKey: sandboxSessionKey,
           runSessionKey:
@@ -777,6 +778,7 @@ async function compactEmbeddedPiSessionDirectOnce(
       cfg: params.config,
       channel: runtimeChannel,
       accountId: params.agentAccountId,
+      promptRuntime: params.channelPromptRuntime,
     });
     const reactionGuidance =
       runtimeChannel && params.config
@@ -784,6 +786,7 @@ async function compactEmbeddedPiSessionDirectOnce(
             cfg: params.config,
             channel: runtimeChannel,
             accountId: params.agentAccountId,
+            promptRuntime: params.channelPromptRuntime,
           })
         : undefined;
     const { defaultAgentId, sessionAgentId } = resolveSessionAgentIds({
@@ -813,6 +816,7 @@ async function compactEmbeddedPiSessionDirectOnce(
           cfg: params.config,
           channel: runtimeChannel,
           accountId: params.agentAccountId,
+          promptRuntime: params.channelPromptRuntime,
         })
       : undefined;
 

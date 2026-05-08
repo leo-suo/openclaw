@@ -189,6 +189,7 @@ type ToolHandlerParams = Pick<
   | "agentId"
   | "toolResultFormat"
   | "toolProgressDetail"
+  | "actionExtractorsByToolName"
 >;
 
 type ToolHandlerState = Pick<

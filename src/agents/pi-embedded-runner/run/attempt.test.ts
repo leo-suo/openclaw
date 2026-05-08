@@ -9,6 +9,10 @@ import { SYSTEM_PROMPT_CACHE_BOUNDARY } from "../../system-prompt-cache-boundary
 import { buildAgentSystemPrompt } from "../../system-prompt.js";
 import { resolveBootstrapContextTargets } from "./attempt-bootstrap-routing.js";
 import {
+  shouldCreateBundleLspRuntimeForAttempt,
+  shouldCreateBundleMcpRuntimeForAttempt,
+} from "./attempt-tool-construction-plan.js";
+import {
   buildContextEnginePromptCacheInfo,
   buildAfterTurnRuntimeContext,
   buildAfterTurnRuntimeContextFromUsage,
@@ -33,10 +37,6 @@ import {
   wrapStreamFnSanitizeMalformedToolCalls,
   wrapStreamFnTrimToolCallNames,
 } from "./attempt.js";
-import {
-  shouldCreateBundleLspRuntimeForAttempt,
-  shouldCreateBundleMcpRuntimeForAttempt,
-} from "./attempt-tool-construction-plan.js";
 import { buildEmbeddedAttemptToolRunContext } from "./attempt.tool-run-context.js";
 
 type FakeWrappedStream = {

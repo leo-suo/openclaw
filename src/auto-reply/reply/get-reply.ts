@@ -23,6 +23,7 @@ import type { ReplyPayload } from "../reply-payload.js";
 import type { MsgContext } from "../templating.js";
 import { normalizeVerboseLevel } from "../thinking.js";
 import { SILENT_REPLY_TOKEN } from "../tokens.js";
+import { resolveReplyChannelRuntime } from "./channel-runtime.js";
 import { resolveDefaultModel } from "./directive-handling.defaults.js";
 import { clearInlineDirectives } from "./get-reply-directives-utils.js";
 import { resolveReplyDirectives } from "./get-reply-directives.js";
@@ -360,6 +361,10 @@ export async function getReplyFromConfig(
     triggerBodyNormalized,
     bodyStripped,
   } = sessionState;
+  const replyChannelRuntime = resolveReplyChannelRuntime({
+    cfg,
+    channel: sessionCtx.Provider ?? sessionCtx.Surface,
+  });
 
   if (sessionEntry?.pendingFinalDelivery && sessionEntry.pendingFinalDeliveryText) {
     const text = sessionEntry.pendingFinalDeliveryText;
@@ -535,6 +540,7 @@ export async function getReplyFromConfig(
         storePath,
         workspaceDir,
         abortedLastRun,
+        replyChannelRuntime,
       }),
     );
   }
@@ -554,6 +560,7 @@ export async function getReplyFromConfig(
       storePath,
       sessionScope,
       groupResolution,
+      replyChannelRuntime,
       isGroup,
       triggerBodyNormalized,
       resetTriggered,
@@ -666,6 +673,7 @@ export async function getReplyFromConfig(
       directiveAck,
       abortedLastRun,
       skillFilter: mergedSkillFilter,
+      replyChannelRuntime,
     }),
   );
   if (inlineActionResult.kind === "reply") {
@@ -772,6 +780,7 @@ export async function getReplyFromConfig(
       storePath,
       workspaceDir,
       abortedLastRun,
+      replyChannelRuntime,
     }),
   );
 }

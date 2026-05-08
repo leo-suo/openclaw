@@ -17,6 +17,7 @@ import type { MsgContext, TemplateContext } from "../templating.js";
 import type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel } from "../thinking.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
 import { resolveBlockStreamingChunking } from "./block-streaming.js";
+import type { ReplyChannelRuntime } from "./channel-runtime.js";
 import { buildCommandContext } from "./commands-context.js";
 import { type InlineDirectives, parseInlineDirectives } from "./directive-handling.parse.js";
 import {
@@ -154,6 +155,7 @@ export async function resolveReplyDirectives(params: {
   storePath?: string;
   sessionScope: Parameters<typeof applyInlineDirectiveOverrides>[0]["sessionScope"];
   groupResolution: Parameters<typeof resolveGroupRequireMention>[0]["groupResolution"];
+  replyChannelRuntime?: ReplyChannelRuntime;
   isGroup: boolean;
   triggerBodyNormalized: string;
   resetTriggered: boolean;
@@ -182,6 +184,7 @@ export async function resolveReplyDirectives(params: {
     storePath,
     sessionScope,
     groupResolution,
+    replyChannelRuntime,
     isGroup,
     triggerBodyNormalized,
     resetTriggered,
@@ -414,6 +417,7 @@ export async function resolveReplyDirectives(params: {
     cfg,
     ctx: sessionCtx,
     groupResolution,
+    runtime: replyChannelRuntime,
   });
   const defaultActivation = defaultGroupActivation(requireMention);
   const resolvedThinkLevel =
@@ -608,6 +612,7 @@ export async function resolveReplyDirectives(params: {
     contextTokens,
     effectiveModelDirective,
     typing,
+    replyChannelRuntime,
   });
   if (applyResult.kind === "reply") {
     return { kind: "reply", reply: applyResult.reply };

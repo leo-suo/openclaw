@@ -101,6 +101,7 @@ import {
   resolveBootstrapPromptTruncationWarningMode,
   resolveBootstrapTotalMaxChars,
 } from "../../pi-embedded-helpers.js";
+import { buildActionExtractorsByToolName } from "../../pi-embedded-messaging.js";
 import { countActiveToolExecutions } from "../../pi-embedded-subscribe.handlers.tools.js";
 import { subscribeEmbeddedPiSession } from "../../pi-embedded-subscribe.js";
 import { createPreparedEmbeddedPiSettingsManager } from "../../pi-project-settings.js";
@@ -825,6 +826,7 @@ export async function runEmbeddedAttempt(
             },
             sandbox,
             messageProvider: resolveAttemptToolPolicyMessageProvider(params),
+            outboundChannelRuntime: params.outboundChannelRuntime,
             agentAccountId: params.agentAccountId,
             messageTo: params.messageTo,
             messageThreadId: params.messageThreadId,
@@ -1151,6 +1153,7 @@ export async function runEmbeddedAttempt(
       cfg: params.config,
       channel: runtimeChannel,
       accountId: params.agentAccountId,
+      promptRuntime: params.channelPromptRuntime,
     });
     const reactionGuidance =
       runtimeChannel && params.config
@@ -1158,6 +1161,7 @@ export async function runEmbeddedAttempt(
             cfg: params.config,
             channel: runtimeChannel,
             accountId: params.agentAccountId,
+            promptRuntime: params.channelPromptRuntime,
           })
         : undefined;
     const sandboxInfo = buildEmbeddedSandboxInfo(sandbox, params.bashElevated);
@@ -1198,6 +1202,7 @@ export async function runEmbeddedAttempt(
           cfg: params.config,
           channel: runtimeChannel,
           accountId: params.agentAccountId,
+          promptRuntime: params.channelPromptRuntime,
         })
       : undefined;
 
@@ -2426,6 +2431,9 @@ export async function runEmbeddedAttempt(
           sessionId: params.sessionId,
           agentId: sessionAgentId,
           builtinToolNames,
+          actionExtractorsByToolName: buildActionExtractorsByToolName(
+            params.outboundChannelRuntime,
+          ),
           internalEvents: params.internalEvents,
         }),
       );

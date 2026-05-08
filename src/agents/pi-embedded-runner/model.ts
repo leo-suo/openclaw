@@ -6,6 +6,7 @@ import {
   type ModelRegistry,
 } from "@mariozechner/pi-coding-agent";
 import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { ProviderRuntimePluginHandle } from "../../plugins/provider-hook-runtime.js";
 import type { ProviderRuntimeModel } from "../../plugins/provider-runtime-model.types.js";
 import {
   applyProviderResolvedModelCompatWithPlugins,
@@ -131,6 +132,7 @@ type ResolveModelAsyncOptions = {
   skipProviderRuntimeHooks?: boolean;
   skipPiDiscovery?: boolean;
   workspaceDir?: string;
+  runtimeHandle?: ProviderRuntimePluginHandle;
 };
 
 type PreparePreparedRuntimeModelOptions = {
@@ -162,6 +164,7 @@ function shouldCacheSkipPiDiscoveryModelResolution(options?: {
   modelRegistry?: ModelRegistry;
   retryTransientProviderRuntimeMiss?: boolean;
   runtimeHooks?: ProviderRuntimeHooks;
+  runtimeHandle?: ProviderRuntimePluginHandle;
   skipProviderRuntimeHooks?: boolean;
   skipPiDiscovery?: boolean;
 }): boolean {
@@ -171,6 +174,7 @@ function shouldCacheSkipPiDiscoveryModelResolution(options?: {
     !options.modelRegistry &&
     !options.retryTransientProviderRuntimeMiss &&
     !options.runtimeHooks &&
+    !options.runtimeHandle &&
     options.skipProviderRuntimeHooks !== true
   );
 }
@@ -249,11 +253,13 @@ function applyResolvedTransportFallback(params: {
   workspaceDir?: string;
   runtimeHooks: ProviderRuntimeHooks;
   model: Model<Api>;
+  runtimeHandle?: ProviderRuntimePluginHandle;
 }): Model<Api> | undefined {
   const normalized = params.runtimeHooks.normalizeProviderTransportWithPlugin({
     provider: params.provider,
     config: params.cfg,
     workspaceDir: params.workspaceDir,
+    runtimeHandle: params.runtimeHandle,
     context: {
       config: params.cfg,
       workspaceDir: params.workspaceDir,
@@ -284,6 +290,7 @@ function normalizeResolvedModel(params: {
   agentDir?: string;
   workspaceDir?: string;
   runtimeHooks?: ProviderRuntimeHooks;
+  runtimeHandle?: ProviderRuntimePluginHandle;
 }): Model<Api> {
   const normalizeModelCost = (cost: unknown): Model<Api>["cost"] => {
     if (!cost || typeof cost !== "object" || Array.isArray(cost)) {
@@ -334,6 +341,7 @@ function normalizeResolvedModel(params: {
     provider: params.provider,
     config: params.cfg,
     workspaceDir: params.workspaceDir,
+    runtimeHandle: params.runtimeHandle,
     context: {
       config: params.cfg,
       agentDir: params.agentDir,
@@ -347,6 +355,7 @@ function normalizeResolvedModel(params: {
     provider: params.provider,
     config: params.cfg,
     workspaceDir: params.workspaceDir,
+    runtimeHandle: params.runtimeHandle,
     context: {
       config: params.cfg,
       agentDir: params.agentDir,
@@ -360,6 +369,7 @@ function normalizeResolvedModel(params: {
     provider: params.provider,
     config: params.cfg,
     workspaceDir: params.workspaceDir,
+    runtimeHandle: params.runtimeHandle,
     context: {
       config: params.cfg,
       agentDir: params.agentDir,
@@ -377,6 +387,7 @@ function normalizeResolvedModel(params: {
       workspaceDir: params.workspaceDir,
       runtimeHooks,
       model: compatNormalized ?? pluginNormalized ?? normalizedInputModel,
+      runtimeHandle: params.runtimeHandle,
     });
   return canonicalizeLegacyResolvedModel({
     provider: params.provider,
@@ -395,6 +406,7 @@ function resolveProviderTransport(params: {
   cfg?: OpenClawConfig;
   workspaceDir?: string;
   runtimeHooks?: ProviderRuntimeHooks;
+  runtimeHandle?: ProviderRuntimePluginHandle;
 }): {
   api?: Api;
   baseUrl?: string;
@@ -404,6 +416,7 @@ function resolveProviderTransport(params: {
     provider: params.provider,
     config: params.cfg,
     workspaceDir: params.workspaceDir,
+    runtimeHandle: params.runtimeHandle,
     context: {
       config: params.cfg,
       workspaceDir: params.workspaceDir,
@@ -607,6 +620,7 @@ function applyConfiguredProviderOverrides(params: {
   runtimeHooks?: ProviderRuntimeHooks;
   preferDiscoveredModelMetadata?: boolean;
   workspaceDir?: string;
+  runtimeHandle?: ProviderRuntimePluginHandle;
 }): ProviderRuntimeModel {
   const { discoveredModel, providerConfig, modelId } = params;
   const requestTimeoutMs = resolveProviderRequestTimeoutMs(providerConfig?.timeoutSeconds);
@@ -692,6 +706,7 @@ function applyConfiguredProviderOverrides(params: {
     cfg: params.cfg,
     workspaceDir: params.workspaceDir,
     runtimeHooks: params.runtimeHooks,
+    runtimeHandle: params.runtimeHandle,
   });
   const resolvedContextWindow =
     metadataOverrideModel?.contextWindow ?? providerConfig.contextWindow;
@@ -746,8 +761,18 @@ function resolveExplicitModelWithRegistry(params: {
   agentDir?: string;
   workspaceDir?: string;
   runtimeHooks?: ProviderRuntimeHooks;
+  runtimeHandle?: ProviderRuntimePluginHandle;
 }): { kind: "resolved"; model: Model<Api> } | { kind: "suppressed" } | undefined {
-  const { provider, modelId, modelRegistry, cfg, agentDir, workspaceDir, runtimeHooks } = params;
+  const {
+    provider,
+    modelId,
+    modelRegistry,
+    cfg,
+    agentDir,
+    workspaceDir,
+    runtimeHooks,
+    runtimeHandle,
+  } = params;
   const providerConfig = resolveConfiguredProviderConfig(cfg, provider);
   const requestTimeoutMs = resolveProviderRequestTimeoutMs(providerConfig?.timeoutSeconds);
   const inlineMatch = findInlineModelMatch({
@@ -783,6 +808,7 @@ function resolveExplicitModelWithRegistry(params: {
           ...(requestTimeoutMs !== undefined ? { requestTimeoutMs } : {}),
         } as Model<Api>,
         runtimeHooks,
+        runtimeHandle,
       }),
     };
   }
@@ -814,8 +840,10 @@ function resolveExplicitModelWithRegistry(params: {
           cfg,
           runtimeHooks,
           workspaceDir,
+          runtimeHandle,
         }),
         runtimeHooks,
+        runtimeHandle,
       }),
     };
   }
@@ -846,6 +874,7 @@ function resolveExplicitModelWithRegistry(params: {
           ...(requestTimeoutMs !== undefined ? { requestTimeoutMs } : {}),
         } as Model<Api>,
         runtimeHooks,
+        runtimeHandle,
       }),
     };
   }
@@ -861,6 +890,7 @@ function resolvePluginDynamicModelWithRegistry(params: {
   agentDir?: string;
   workspaceDir?: string;
   runtimeHooks?: ProviderRuntimeHooks;
+  runtimeHandle?: ProviderRuntimePluginHandle;
 }): Model<Api> | undefined {
   const { provider, modelId, modelRegistry, cfg, agentDir, workspaceDir } = params;
   const runtimeHooks = params.runtimeHooks ?? DEFAULT_PROVIDER_RUNTIME_HOOKS;
@@ -872,11 +902,13 @@ function resolvePluginDynamicModelWithRegistry(params: {
     agentDir,
     workspaceDir,
     runtimeHooks,
+    runtimeHandle: params.runtimeHandle,
   });
   const pluginDynamicModel = runtimeHooks.runProviderDynamicModel({
     provider,
     config: cfg,
     workspaceDir,
+    runtimeHandle: params.runtimeHandle,
     context: {
       config: cfg,
       agentDir,
@@ -899,6 +931,7 @@ function resolvePluginDynamicModelWithRegistry(params: {
     runtimeHooks,
     workspaceDir,
     preferDiscoveredModelMetadata,
+    runtimeHandle: params.runtimeHandle,
   });
   return normalizeResolvedModel({
     provider,
@@ -907,6 +940,7 @@ function resolvePluginDynamicModelWithRegistry(params: {
     workspaceDir,
     model: overriddenDynamicModel,
     runtimeHooks,
+    runtimeHandle: params.runtimeHandle,
   });
 }
 
@@ -917,8 +951,9 @@ function resolveConfiguredFallbackModel(params: {
   agentDir?: string;
   workspaceDir?: string;
   runtimeHooks?: ProviderRuntimeHooks;
+  runtimeHandle?: ProviderRuntimePluginHandle;
 }): Model<Api> | undefined {
-  const { provider, modelId, cfg, agentDir, workspaceDir, runtimeHooks } = params;
+  const { provider, modelId, cfg, agentDir, workspaceDir, runtimeHooks, runtimeHandle } = params;
   const providerConfig = resolveConfiguredProviderConfig(cfg, provider);
   const requestTimeoutMs = resolveProviderRequestTimeoutMs(providerConfig?.timeoutSeconds);
   const configuredModel = findConfiguredProviderModel(providerConfig, provider, modelId);
@@ -945,6 +980,7 @@ function resolveConfiguredFallbackModel(params: {
     cfg,
     workspaceDir,
     runtimeHooks,
+    runtimeHandle,
   });
   const requestConfig = resolveProviderRequestConfig({
     provider,
@@ -998,6 +1034,7 @@ function resolveConfiguredFallbackModel(params: {
       providerRequest,
     ),
     runtimeHooks,
+    runtimeHandle,
   });
 }
 
@@ -1008,12 +1045,14 @@ function shouldCompareProviderRuntimeResolvedModel(params: {
   agentDir?: string;
   workspaceDir?: string;
   runtimeHooks: ProviderRuntimeHooks;
+  runtimeHandle?: ProviderRuntimePluginHandle;
 }): boolean {
   return (
     params.runtimeHooks.shouldPreferProviderRuntimeResolvedModel?.({
       provider: params.provider,
       config: params.cfg,
       workspaceDir: params.workspaceDir,
+      runtimeHandle: params.runtimeHandle,
       context: {
         provider: params.provider,
         modelId: params.modelId,
@@ -1043,6 +1082,7 @@ export function resolveModelWithRegistry(params: {
   agentDir?: string;
   workspaceDir?: string;
   runtimeHooks?: ProviderRuntimeHooks;
+  runtimeHandle?: ProviderRuntimePluginHandle;
 }): Model<Api> | undefined {
   const normalizedRef = {
     provider: params.provider,
@@ -1073,6 +1113,7 @@ export function resolveModelWithRegistry(params: {
         agentDir: scopedParams.agentDir,
         workspaceDir,
         runtimeHooks,
+        runtimeHandle: params.runtimeHandle,
       })
     ) {
       return explicitModel.model;
@@ -1102,6 +1143,7 @@ export function resolveModel(
     runtimeHooks?: ProviderRuntimeHooks;
     skipProviderRuntimeHooks?: boolean;
     workspaceDir?: string;
+    runtimeHandle?: ProviderRuntimePluginHandle;
   },
 ): {
   model?: Model<Api>;
@@ -1126,6 +1168,7 @@ export function resolveModel(
     agentDir: resolvedAgentDir,
     workspaceDir,
     runtimeHooks,
+    runtimeHandle: options?.runtimeHandle,
   });
   if (model) {
     return { model, authStorage, modelRegistry };
@@ -1139,6 +1182,7 @@ export function resolveModel(
       agentDir: resolvedAgentDir,
       workspaceDir,
       runtimeHooks,
+      runtimeHandle: options?.runtimeHandle,
     }),
     authStorage,
     modelRegistry,
@@ -1199,6 +1243,7 @@ export async function resolveModelAsync(
       agentDir: resolvedAgentDir,
       workspaceDir,
       runtimeHooks,
+      runtimeHandle: options?.runtimeHandle,
     });
     if (explicitModel?.kind === "suppressed") {
       return {
@@ -1209,6 +1254,7 @@ export async function resolveModelAsync(
           agentDir: resolvedAgentDir,
           workspaceDir,
           runtimeHooks,
+          runtimeHandle: options?.runtimeHandle,
         }),
         authStorage,
         modelRegistry,
@@ -1221,6 +1267,7 @@ export async function resolveModelAsync(
         provider: normalizedRef.provider,
         config: cfg,
         workspaceDir,
+        runtimeHandle: options?.runtimeHandle,
         context: {
           config: cfg,
           agentDir: resolvedAgentDir,
@@ -1239,6 +1286,7 @@ export async function resolveModelAsync(
         agentDir: resolvedAgentDir,
         workspaceDir,
         runtimeHooks,
+        runtimeHandle: options?.runtimeHandle,
       });
     };
     let model =
@@ -1250,6 +1298,7 @@ export async function resolveModelAsync(
         agentDir: resolvedAgentDir,
         workspaceDir,
         runtimeHooks,
+        runtimeHandle: options?.runtimeHandle,
       })
         ? explicitModel.model
         : await resolveDynamicAttempt();
@@ -1271,6 +1320,7 @@ export async function resolveModelAsync(
         agentDir: resolvedAgentDir,
         workspaceDir,
         runtimeHooks,
+        runtimeHandle: options?.runtimeHandle,
       }),
       authStorage,
       modelRegistry,
@@ -1334,6 +1384,7 @@ function buildUnknownModelError(params: {
   agentDir?: string;
   workspaceDir?: string;
   runtimeHooks?: ProviderRuntimeHooks;
+  runtimeHandle?: ProviderRuntimePluginHandle;
 }): string {
   const suppressed = buildSuppressedBuiltInModelError({
     provider: params.provider,
@@ -1350,6 +1401,7 @@ function buildUnknownModelError(params: {
     config: params.cfg,
     workspaceDir: params.workspaceDir,
     env: process.env,
+    runtimeHandle: params.runtimeHandle,
     context: {
       config: params.cfg,
       agentDir: params.agentDir,

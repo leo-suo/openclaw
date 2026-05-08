@@ -102,6 +102,7 @@ export async function runMediaUnderstandingFile(
 
   const providerRegistry = buildProviderRegistry(undefined, cfg, {
     providerIds: params.activeModel?.provider ? [params.activeModel.provider] : [],
+    includeConfiguredProviderRefs: false,
   });
   const cache = createMediaAttachmentCache(attachments, {
     localPathRoots: [path.dirname(params.filePath)],
@@ -155,6 +156,7 @@ export async function describeImageFileWithModel(params: DescribeImageFileWithMo
   const timeoutMs = params.timeoutMs ?? 30_000;
   const providerRegistry = buildProviderRegistry(undefined, params.cfg, {
     providerIds: [params.provider],
+    includeConfiguredProviderRefs: false,
   });
   const provider = providerRegistry.get(normalizeMediaProviderId(params.provider));
   if (!provider?.describeImage) {

@@ -40,6 +40,28 @@ describe("media-understanding provider registry", () => {
     });
   });
 
+  it("passes active-provider capability scope options to the capability runtime", () => {
+    const cfg = {
+      tools: {
+        media: {
+          image: { models: [{ provider: "google", model: "gemini-2.5-flash" }] },
+        },
+      },
+    } as never;
+
+    buildMediaUnderstandingRegistry(undefined, cfg, {
+      providerIds: ["openai"],
+      includeConfiguredProviderRefs: false,
+    });
+
+    expect(resolvePluginCapabilityProvidersMock).toHaveBeenCalledWith({
+      key: "mediaUnderstandingProviders",
+      cfg,
+      providerIds: ["openai"],
+      includeConfiguredProviderRefs: false,
+    });
+  });
+
   it("keeps provider id normalization behavior for capability providers", () => {
     resolvePluginCapabilityProvidersMock.mockReturnValue([
       createMediaProvider({ id: "google", capabilities: ["image", "audio", "video"] }),

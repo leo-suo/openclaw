@@ -1857,6 +1857,7 @@ export async function runEmbeddedPiAgent(
                   adoptCompactionTranscript(compactResult);
                   await runContextEngineMaintenance({
                     contextEngine,
+                    sessionAgentId,
                     sessionId: activeSessionId,
                     sessionKey: params.sessionKey,
                     sessionFile: activeSessionFile,
@@ -1895,6 +1896,7 @@ export async function runEmbeddedPiAgent(
                       cfg: params.config,
                       agentId: sessionAgentId,
                     }),
+                    agentId: sessionAgentId,
                     sessionId: activeSessionId,
                     sessionKey: params.sessionKey,
                     config: params.config,
@@ -1957,6 +1959,7 @@ export async function runEmbeddedPiAgent(
                   sessionFile: activeSessionFile,
                   contextWindowTokens,
                   maxCharsOverride: toolResultMaxChars,
+                  agentId: sessionAgentId,
                   sessionId: activeSessionId,
                   sessionKey: params.sessionKey,
                   config: params.config,

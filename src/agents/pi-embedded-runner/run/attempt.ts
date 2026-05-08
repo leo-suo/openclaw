@@ -1466,6 +1466,7 @@ export async function runEmbeddedAttempt(
         runMaintenance: async (contextParams) =>
           await runContextEngineMaintenance({
             contextEngine: contextParams.contextEngine as never,
+            sessionAgentId,
             sessionId: contextParams.sessionId,
             sessionKey: contextParams.sessionKey,
             sessionFile: contextParams.sessionFile,
@@ -2593,6 +2594,7 @@ export async function runEmbeddedAttempt(
             sessionManager: activeSessionManager,
             contextWindowTokens: contextTokenBudget,
             maxCharsOverride: toolResultMaxChars,
+            agentId: sessionAgentId,
             sessionFile: params.sessionFile,
             sessionId: params.sessionId,
             sessionKey: params.sessionKey,
@@ -3135,6 +3137,7 @@ export async function runEmbeddedAttempt(
               sessionManager,
               contextWindowTokens: contextTokenBudget,
               maxCharsOverride: toolResultMaxChars,
+              agentId: sessionAgentId,
               sessionFile: params.sessionFile,
               sessionId: params.sessionId,
               sessionKey: params.sessionKey,
@@ -3463,6 +3466,7 @@ export async function runEmbeddedAttempt(
             runMaintenance: async (contextParams) =>
               await runContextEngineMaintenance({
                 contextEngine: contextParams.contextEngine as never,
+                sessionAgentId,
                 sessionId: contextParams.sessionId,
                 sessionKey: contextParams.sessionKey,
                 sessionFile: contextParams.sessionFile,

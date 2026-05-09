@@ -4,7 +4,6 @@ import type { ReplyPayload } from "../../auto-reply/reply-payload.js";
 import type { ReplyBackendHandle } from "../../auto-reply/reply/reply-run-registry.js";
 import type { ThinkLevel } from "../../auto-reply/thinking.js";
 import { SILENT_REPLY_TOKEN } from "../../auto-reply/tokens.js";
-import { createSqliteSessionTranscriptLocator } from "../../config/sessions.js";
 import { ensureContextEnginesInitialized } from "../../context-engine/init.js";
 import {
   resolveContextEngine,
@@ -478,8 +477,6 @@ export async function runEmbeddedPiAgent(
     agentId: sessionAgentId,
     sessionId,
   });
-  const resolveTranscriptBoundaryHandle = (sessionId: string) =>
-    createSqliteSessionTranscriptLocator(resolveTranscriptScope(sessionId));
   const sessionLane = resolveSessionLane(params.sessionKey?.trim() || params.sessionId);
   const globalLane = resolveGlobalLane(params.lane);
   const laneTaskTimeoutMs = resolveEmbeddedRunLaneTimeoutMs(params.timeoutMs);
@@ -1023,7 +1020,7 @@ export async function runEmbeddedPiAgent(
       const overloadProfileRotationLimit = resolveOverloadProfileRotationLimit(params.config);
       const rateLimitProfileRotationLimit = resolveRateLimitProfileRotationLimit(params.config);
       let activeSessionId = params.sessionId;
-      let activeTranscriptLocator = resolveTranscriptBoundaryHandle(activeSessionId);
+      let activeTranscriptScope = resolveTranscriptScope(activeSessionId);
       let suppressNextUserMessagePersistence = params.suppressNextUserMessagePersistence ?? false;
       // OpenClaw owns transcript persistence; this marker only lets the outer retry avoid
       // replaying the same inbound channel message after overflow compaction.
@@ -1131,7 +1128,7 @@ export async function runEmbeddedPiAgent(
           const nextSessionId = compactResult.result?.sessionId;
           if (nextSessionId && nextSessionId !== activeSessionId) {
             activeSessionId = nextSessionId;
-            activeTranscriptLocator = resolveTranscriptBoundaryHandle(activeSessionId);
+            activeTranscriptScope = resolveTranscriptScope(activeSessionId);
           }
         };
         const onCompactionHookMessages = async (payload: {
@@ -1444,7 +1441,7 @@ export async function runEmbeddedPiAgent(
           const timedOutDuringToolExecution = attempt.timedOutDuringToolExecution ?? false;
           if (sessionIdUsed && sessionIdUsed !== activeSessionId) {
             activeSessionId = sessionIdUsed;
-            activeTranscriptLocator = resolveTranscriptBoundaryHandle(activeSessionId);
+            activeTranscriptScope = resolveTranscriptScope(activeSessionId);
           }
           bootstrapPromptWarningSignaturesSeen =
             attempt.bootstrapPromptWarningSignaturesSeen ??
@@ -1669,7 +1666,6 @@ export async function runEmbeddedPiAgent(
                   sessionId: activeSessionId,
                   sessionKey: params.sessionKey,
                   transcriptScope: resolveTranscriptScope(activeSessionId),
-                  transcriptLocator: activeTranscriptLocator,
                   tokenBudget: ctxInfo.tokens,
                   force: true,
                   compactionTarget: "budget",
@@ -1748,7 +1744,7 @@ export async function runEmbeddedPiAgent(
             log.warn(
               `[context-overflow-diag] sessionKey=${params.sessionKey ?? params.sessionId} ` +
                 `provider=${provider}/${modelId} source=${contextOverflowError.source} ` +
-                `messages=${msgCount} transcriptLocator=${activeTranscriptLocator} ` +
+                `messages=${msgCount} transcriptScope=${activeTranscriptScope.agentId}/${activeTranscriptScope.sessionId} ` +
                 `diagId=${overflowDiagId} compactionAttempts=${overflowCompactionAttempts} ` +
                 `observedTokens=${observedOverflowTokens ?? "unknown"} ` +
                 `error=${errorText.slice(0, 200)}`,
@@ -1846,7 +1842,6 @@ export async function runEmbeddedPiAgent(
                   sessionId: activeSessionId,
                   sessionKey: params.sessionKey,
                   transcriptScope: resolveTranscriptScope(activeSessionId),
-                  transcriptLocator: activeTranscriptLocator,
                   tokenBudget: ctxInfo.tokens,
                   ...(observedOverflowTokens !== undefined
                     ? { currentTokenCount: observedOverflowTokens }
@@ -1863,7 +1858,6 @@ export async function runEmbeddedPiAgent(
                     sessionId: activeSessionId,
                     sessionKey: params.sessionKey,
                     transcriptScope: resolveTranscriptScope(activeSessionId),
-                    transcriptLocator: activeTranscriptLocator,
                     reason: "compaction",
                     runtimeContext: overflowCompactionRuntimeContext,
                     config: params.config,

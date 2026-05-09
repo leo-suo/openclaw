@@ -9,6 +9,17 @@ const loadDeviceAuthTokenMock = vi.hoisted(() => vi.fn());
 const storeDeviceAuthTokenMock = vi.hoisted(() => vi.fn());
 const logDebugMock = vi.hoisted(() => vi.fn());
 const logErrorMock = vi.hoisted(() => vi.fn());
+const { installGlobalProxyMock, proxylineStopMock } = vi.hoisted(() => {
+  const proxylineStopMock = vi.fn();
+  return {
+    proxylineStopMock,
+    installGlobalProxyMock: vi.fn(() => ({
+      active: true,
+      mode: "managed",
+      stop: proxylineStopMock,
+    })),
+  };
+});
 
 type WsEvent = "open" | "message" | "close" | "error";
 type WsEventHandlers = {
@@ -105,6 +116,10 @@ vi.mock("ws", () => ({
   WebSocket: MockWebSocket,
 }));
 
+vi.mock("@jesse-merhi/proxyline", () => ({
+  installGlobalProxy: installGlobalProxyMock,
+}));
+
 vi.mock("../infra/device-auth-store.js", async () => {
   const actual = await vi.importActual<typeof import("../infra/device-auth-store.js")>(
     "../infra/device-auth-store.js",
@@ -186,31 +201,31 @@ describe("GatewayClient security checks", () => {
     "OPENCLAW_PROXY_ACTIVE",
     "OPENCLAW_PROXY_LOOPBACK_MODE",
     "HTTP_PROXY",
-    "GLOBAL_AGENT_HTTP_PROXY",
-    "GLOBAL_AGENT_FORCE_GLOBAL_AGENT",
   ]);
 
-  beforeEach(() => {
+  beforeEach(async () => {
     envSnapshot.restore();
     delete process.env.OPENCLAW_ALLOW_INSECURE_PRIVATE_WS;
     delete process.env.OPENCLAW_PROXY_ACTIVE;
     delete process.env.OPENCLAW_PROXY_LOOPBACK_MODE;
     delete process.env.HTTP_PROXY;
-    delete process.env.GLOBAL_AGENT_HTTP_PROXY;
-    delete process.env.GLOBAL_AGENT_FORCE_GLOBAL_AGENT;
-    delete (global as Record<string, unknown>)["GLOBAL_AGENT"];
+    const { _resetGlobalAgentBootstrapForTests } =
+      await import("../infra/net/proxy/proxy-lifecycle.js");
+    _resetGlobalAgentBootstrapForTests();
+    installGlobalProxyMock.mockClear();
+    proxylineStopMock.mockClear();
     wsInstances.length = 0;
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     envSnapshot.restore();
     delete process.env.OPENCLAW_ALLOW_INSECURE_PRIVATE_WS;
     delete process.env.OPENCLAW_PROXY_ACTIVE;
     delete process.env.OPENCLAW_PROXY_LOOPBACK_MODE;
     delete process.env.HTTP_PROXY;
-    delete process.env.GLOBAL_AGENT_HTTP_PROXY;
-    delete process.env.GLOBAL_AGENT_FORCE_GLOBAL_AGENT;
-    delete (global as Record<string, unknown>)["GLOBAL_AGENT"];
+    const { _resetGlobalAgentBootstrapForTests } =
+      await import("../infra/net/proxy/proxy-lifecycle.js");
+    _resetGlobalAgentBootstrapForTests();
   });
 
   it("blocks ws:// to non-loopback addresses (CWE-319)", () => {
@@ -260,7 +275,6 @@ describe("GatewayClient security checks", () => {
     process.env.OPENCLAW_PROXY_ACTIVE = "1";
     process.env.OPENCLAW_PROXY_LOOPBACK_MODE = "proxy";
     process.env.HTTP_PROXY = "http://127.0.0.1:3128";
-    process.env.GLOBAL_AGENT_HTTP_PROXY = "http://127.0.0.1:3128";
     const onConnectError = vi.fn();
     const client = new GatewayClient({
       url: "ws://127.0.0.1:18789",
@@ -272,12 +286,10 @@ describe("GatewayClient security checks", () => {
     expect(onConnectError).not.toHaveBeenCalled();
     expect(wsInstances.length).toBe(1);
     expect(getLatestWs().options).not.toMatchObject({ agent: expect.any(Object) });
-    expect((global as Record<string, unknown>)["GLOBAL_AGENT"]).toEqual(
-      expect.objectContaining({
-        HTTP_PROXY: "http://127.0.0.1:3128",
-        HTTPS_PROXY: "http://127.0.0.1:3128",
-      }),
-    );
+    expect(installGlobalProxyMock).toHaveBeenCalledWith({
+      mode: "managed",
+      proxyUrl: "http://127.0.0.1:3128",
+    });
     client.stop();
   });
 

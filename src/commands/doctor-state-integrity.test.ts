@@ -550,7 +550,6 @@ describe("doctor state integrity oauth dir checks", () => {
     replaceSqliteSessionTranscriptEvents({
       agentId: "main",
       sessionId: "heartbeat-session",
-      transcriptPath: heartbeatTranscriptPath,
       events: [
         { message: { role: "user", content: HEARTBEAT_TRANSCRIPT_PROMPT } },
         { message: { role: "assistant", content: "HEARTBEAT_OK" } },
@@ -608,7 +607,6 @@ describe("doctor state integrity oauth dir checks", () => {
     replaceSqliteSessionTranscriptEvents({
       agentId: "main",
       sessionId: "mixed-session",
-      transcriptPath: mixedTranscriptPath,
       events: [
         { message: { role: "user", content: HEARTBEAT_TRANSCRIPT_PROMPT } },
         { message: { role: "assistant", content: "HEARTBEAT_OK" } },
@@ -669,7 +667,6 @@ describe("doctor state integrity oauth dir checks", () => {
       replaceSqliteSessionTranscriptEvents({
         agentId: "main",
         sessionId: "session",
-        transcriptPath,
         events: [
           { message: { role: "user", content: HEARTBEAT_TRANSCRIPT_PROMPT } },
           { message: { role: "user", content: "real follow-up" } },
@@ -693,7 +690,6 @@ describe("doctor state integrity oauth dir checks", () => {
       replaceSqliteSessionTranscriptEvents({
         agentId: "main",
         sessionId: "session",
-        transcriptPath,
         events: [
           { message: { role: "user", content: HEARTBEAT_TRANSCRIPT_PROMPT } },
           { message: { role: "user", content: "real follow-up" } },
@@ -719,7 +715,6 @@ describe("doctor state integrity oauth dir checks", () => {
       replaceSqliteSessionTranscriptEvents({
         agentId: "main",
         sessionId: "session",
-        transcriptPath,
         events: [
           ...Array.from({ length: 400 }, () => ({
             message: { role: "user", content: HEARTBEAT_TRANSCRIPT_PROMPT },
@@ -742,7 +737,6 @@ describe("doctor state integrity oauth dir checks", () => {
     replaceSqliteSessionTranscriptEvents({
       agentId: "main",
       sessionId: "session",
-      transcriptPath,
       events: [
         { message: { role: "user", content: HEARTBEAT_TRANSCRIPT_PROMPT } },
         { message: { role: "assistant", content: "HEARTBEAT_OK" } },

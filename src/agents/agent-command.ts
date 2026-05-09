@@ -936,7 +936,6 @@ async function agentCommandInternal(
       workspaceDir,
     });
     const { resolveSessionTranscriptTarget } = await loadTranscriptResolveRuntime();
-    let transcriptLocator: string | undefined;
     if (sessionStore && sessionKey) {
       const resolvedTranscriptTarget = await resolveSessionTranscriptTarget({
         sessionId,
@@ -946,10 +945,8 @@ async function agentCommandInternal(
         agentId: sessionAgentId,
         threadId: opts.threadId,
       });
-      transcriptLocator = resolvedTranscriptTarget.transcriptLocator;
       sessionEntry = resolvedTranscriptTarget.sessionEntry;
-    }
-    if (!transcriptLocator) {
+    } else {
       const resolvedTranscriptTarget = await resolveSessionTranscriptTarget({
         sessionId,
         sessionKey: sessionKey ?? sessionId,
@@ -957,7 +954,6 @@ async function agentCommandInternal(
         agentId: sessionAgentId,
         threadId: opts.threadId,
       });
-      transcriptLocator = resolvedTranscriptTarget.transcriptLocator;
       sessionEntry = resolvedTranscriptTarget.sessionEntry;
     }
 
@@ -1026,7 +1022,6 @@ async function agentCommandInternal(
               sessionId,
               sessionKey,
               sessionAgentId,
-              transcriptLocator,
               workspaceDir,
               body,
               isFallbackRetry,
@@ -1052,7 +1047,10 @@ async function agentCommandInternal(
               allowTransientCooldownProbe: runOptions?.allowTransientCooldownProbe,
               sessionHasHistory:
                 !isNewSession ||
-                (await attemptExecutionRuntime.sessionTranscriptHasContent(transcriptLocator)),
+                (await attemptExecutionRuntime.sessionTranscriptHasContent({
+                  agentId: sessionAgentId,
+                  sessionId,
+                })),
               suppressPromptPersistenceOnRetry: isFallbackRetry && currentTurnUserMessagePersisted,
               onUserMessagePersisted: () => {
                 currentTurnUserMessagePersisted = true;

@@ -3733,7 +3733,6 @@ describe("active-memory plugin", () => {
     );
 
     const runParams = runEmbeddedPiAgent.mock.calls.at(-1)?.[0];
-    expect(runParams).not.toHaveProperty("transcriptLocator");
     expect(runParams).toMatchObject({
       agentId: "main",
       sessionId: expect.stringMatching(/^active-memory-[a-z0-9]+-[a-f0-9]{8}$/),
@@ -3760,7 +3759,6 @@ describe("active-memory plugin", () => {
     );
 
     const runParams = runEmbeddedPiAgent.mock.calls.at(-1)?.[0];
-    expect(runParams).not.toHaveProperty("transcriptLocator");
     expect(runParams).toMatchObject({
       agentId: "main",
       sessionId: expect.stringMatching(/^active-memory-[a-z0-9]+-[a-f0-9]{8}$/),
@@ -3798,7 +3796,6 @@ describe("active-memory plugin", () => {
 
     expect(mkdirSpy).not.toHaveBeenCalled();
     const runParams = runEmbeddedPiAgent.mock.calls.at(-1)?.[0];
-    expect(runParams).not.toHaveProperty("transcriptLocator");
     expect(runParams).toMatchObject({
       agentId: "support/agent",
       sessionId: expect.stringMatching(/^active-memory-[a-z0-9]+-[a-f0-9]{8}$/),

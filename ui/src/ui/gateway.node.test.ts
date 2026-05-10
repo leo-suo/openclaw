@@ -271,7 +271,7 @@ describe("GatewayBrowserClient", () => {
     vi.unstubAllGlobals();
   });
 
-  it("requests the full control ui operator scope bundle on connect", async () => {
+  it("requests bootstrap-compatible control ui operator scopes on connect", async () => {
     const client = new GatewayBrowserClient({
       url: "ws://127.0.0.1:18789",
       token: "shared-auth-token",
@@ -281,6 +281,8 @@ describe("GatewayBrowserClient", () => {
 
     expect(connectFrame.method).toBe("connect");
     expect(connectFrame.params?.scopes).toEqual([...CONTROL_UI_OPERATOR_SCOPES]);
+    expect(connectFrame.params?.scopes).not.toContain("operator.admin");
+    expect(connectFrame.params?.scopes).not.toContain("operator.pairing");
   });
 
   it("reports request timing for attributed RPC latency", async () => {

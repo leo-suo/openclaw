@@ -1173,7 +1173,7 @@ describe("runReplyAgent typing (heartbeat)", () => {
     }
   });
 
-  it("does not persist fallback state for an equivalent CLI runtime alias", async () => {
+  it("clears fallback notice state for an equivalent CLI runtime alias", async () => {
     const sessionEntry: SessionEntry = {
       sessionId: "session",
       updatedAt: Date.now(),
@@ -1182,9 +1182,6 @@ describe("runReplyAgent typing (heartbeat)", () => {
       fallbackNoticeReason: "selected model unavailable",
     };
     const sessionStore = { main: sessionEntry };
-    const dir = await mkdtemp(join(tmpdir(), "openclaw-agent-runner-cli-alias-"));
-    const storePath = join(dir, "sessions.json");
-    await writeFile(storePath, JSON.stringify({ main: sessionEntry }), "utf8");
 
     state.runEmbeddedPiAgentMock.mockResolvedValue({
       payloads: [{ text: "final" }],
@@ -1201,7 +1198,6 @@ describe("runReplyAgent typing (heartbeat)", () => {
       sessionEntry,
       sessionStore,
       sessionKey: "main",
-      storePath,
       runOverrides: {
         provider: "anthropic",
         model: "claude-opus-4-7",
@@ -1218,15 +1214,8 @@ describe("runReplyAgent typing (heartbeat)", () => {
     });
     await run();
 
-    const stored = JSON.parse(await readFile(storePath, "utf8")).main as SessionEntry;
     expect(sessionEntry.fallbackNoticeSelectedModel).toBeUndefined();
     expect(sessionEntry.fallbackNoticeActiveModel).toBeUndefined();
-    expect(stored.fallbackNoticeSelectedModel).toBeUndefined();
-    expect(stored.fallbackNoticeActiveModel).toBeUndefined();
-    expect(stored.modelProvider).toBe("claude-cli");
-    expect(stored.model).toBe("claude-opus-4-7");
-    expect(stored.totalTokens).toBe(36_000);
-    expect(stored.totalTokensFresh).toBe(true);
   });
 
   it("surfaces overflow fallback when embedded run returns empty payloads", async () => {

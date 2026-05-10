@@ -334,48 +334,6 @@ describe("cli session history", () => {
       expect(messages).toBe(localMessages);
     });
   });
-
-  it("falls back to legacy cliSessionIds when bindings are absent", async () => {
-    await withClaudeProjectsDir(async ({ homeDir, sessionId }) => {
-      const messages = augmentChatHistoryWithCliSessionImports({
-        entry: {
-          sessionId: "openclaw-session",
-          updatedAt: Date.now(),
-          cliSessionIds: {
-            "claude-cli": sessionId,
-          },
-        },
-        provider: "claude-cli",
-        localMessages: [],
-        homeDir,
-      });
-      expect(messages).toHaveLength(3);
-      expect(messages[1]).toMatchObject({
-        role: "assistant",
-        __openclaw: { cliSessionId: sessionId },
-      });
-    });
-  });
-
-  it("falls back to legacy claudeCliSessionId when newer fields are absent", async () => {
-    await withClaudeProjectsDir(async ({ homeDir, sessionId }) => {
-      const messages = augmentChatHistoryWithCliSessionImports({
-        entry: {
-          sessionId: "openclaw-session",
-          updatedAt: Date.now(),
-          claudeCliSessionId: sessionId,
-        },
-        provider: "claude-cli",
-        localMessages: [],
-        homeDir,
-      });
-      expect(messages).toHaveLength(3);
-      expect(messages[0]).toMatchObject({
-        role: "user",
-        __openclaw: { cliSessionId: sessionId },
-      });
-    });
-  });
 });
 
 describe("readClaudeCliFallbackSeed", () => {

@@ -948,11 +948,10 @@ describe("bridgeCodexAppServerStartOptions", () => {
     }
   });
 
-  it("refreshes inherited main Codex OAuth without cloning it into the child store", async () => {
+  it("refreshes inherited main Codex OAuth through the owner store", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-app-server-"));
     const stateDir = path.join(root, "state");
     const childAgentDir = path.join(stateDir, "agents", "worker", "agent");
-    const childAuthPath = path.join(childAgentDir, "auth-profiles.json");
     vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
     vi.stubEnv("OPENCLAW_AGENT_DIR", "");
     oauthMocks.refreshOpenAICodexToken.mockResolvedValueOnce({
@@ -987,7 +986,6 @@ describe("bridgeCodexAppServerStartOptions", () => {
       });
 
       expect(oauthMocks.refreshOpenAICodexToken).toHaveBeenCalledWith("main-refresh-token");
-      await expect(fs.access(childAuthPath)).rejects.toMatchObject({ code: "ENOENT" });
       expect(loadAuthProfileStoreForSecretsRuntime().profiles["openai-codex:work"]).toMatchObject({
         type: "oauth",
         provider: "openai-codex",
@@ -1003,7 +1001,6 @@ describe("bridgeCodexAppServerStartOptions", () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-app-server-"));
     const stateDir = path.join(root, "state");
     const childAgentDir = path.join(stateDir, "agents", "worker", "agent");
-    const childAuthPath = path.join(childAgentDir, "auth-profiles.json");
     vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
     vi.stubEnv("OPENCLAW_AGENT_DIR", "");
     oauthMocks.refreshOpenAICodexToken.mockResolvedValueOnce({
@@ -1025,24 +1022,19 @@ describe("bridgeCodexAppServerStartOptions", () => {
           email: "main-codex@example.test",
         },
       });
-      await fs.mkdir(childAgentDir, { recursive: true });
-      await fs.writeFile(
-        childAuthPath,
-        JSON.stringify({
-          version: 1,
-          profiles: {
-            "openai-codex:work": {
-              type: "oauth",
-              provider: "openai-codex",
-              access: "child-stale-access-token",
-              refresh: "child-stale-refresh-token",
-              expires: Date.now() - 60_000,
-              accountId: "account-main",
-              email: "main-codex@example.test",
-            },
-          },
-        }),
-      );
+      upsertAuthProfile({
+        agentDir: childAgentDir,
+        profileId: "openai-codex:work",
+        credential: {
+          type: "oauth",
+          provider: "openai-codex",
+          access: "child-stale-access-token",
+          refresh: "child-stale-refresh-token",
+          expires: Date.now() - 60_000,
+          accountId: "account-main",
+          email: "main-codex@example.test",
+        },
+      });
 
       await expect(
         refreshCodexAppServerAuthTokens({
@@ -1061,13 +1053,6 @@ describe("bridgeCodexAppServerStartOptions", () => {
         provider: "openai-codex",
         access: "main-refreshed-access-token",
         refresh: "main-refreshed-refresh-token",
-      });
-      const child = JSON.parse(await fs.readFile(childAuthPath, "utf8")) as {
-        profiles: Record<string, { access?: string; refresh?: string }>;
-      };
-      expect(child.profiles["openai-codex:work"]).toMatchObject({
-        access: "child-stale-access-token",
-        refresh: "child-stale-refresh-token",
       });
     } finally {
       await fs.rm(root, { recursive: true, force: true });

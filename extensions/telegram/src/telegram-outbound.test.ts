@@ -12,6 +12,7 @@ describe("telegramPlugin outbound", () => {
     expect(telegramOutbound.chunker?.(text, 4000)).toEqual(expected);
     expect(telegramOutbound.deliveryMode).toBe("direct");
     expect(telegramOutbound.chunkerMode).toBe("markdown");
+    expect(telegramOutbound.chunkedTextFormatting).toEqual({ parseMode: "HTML" });
     expect(telegramOutbound.textChunkLimit).toBe(4000);
     expect(telegramOutbound.pollMaxOptions).toBe(10);
   });

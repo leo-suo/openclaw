@@ -842,9 +842,8 @@ describe("package artifact reuse", () => {
     expect(workflow).toContain("preflight-manifest.json");
     expect(npmWorkflow).toContain("preflight-manifest.json");
     expect(npmWorkflow).toContain("tarballSha256");
-    expect(workflow).toContain(
-      'gh api "repos/${GITHUB_REPOSITORY}/contents/CHANGELOG.md?ref=${TARGET_SHA}"',
-    );
+    expect(workflow).toContain("Checkout release SHA");
+    expect(workflow).toContain('git show "${TARGET_SHA}:CHANGELOG.md" > "${changelog_file}"');
     expect(workflow).toContain('$0 == "## Unreleased" { in_section = 1; next }');
     expect(workflow).toContain("Unreleased prerelease fallback");
     expect(workflow).not.toContain("gh api --repo");

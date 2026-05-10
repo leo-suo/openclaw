@@ -202,7 +202,7 @@ describe("buildCliArgs", () => {
 });
 
 describe("writeCliImages", () => {
-  it("uses stable hashed file paths so repeated image hydration reuses the same path", async () => {
+  it("materializes images into per-run temp paths and cleans them up", async () => {
     const workspaceDir = await fs.mkdtemp(
       path.join(resolvePreferredOpenClawTmpDir(), "openclaw-cli-write-images-"),
     );
@@ -225,12 +225,16 @@ describe("writeCliImages", () => {
 
     try {
       expect(first.paths).toHaveLength(1);
-      expect(second.paths).toEqual(first.paths);
-      expect(first.paths[0]).toContain(`${resolvePreferredOpenClawTmpDir()}/openclaw-cli-images/`);
+      expect(second.paths).toHaveLength(1);
+      expect(second.paths).not.toEqual(first.paths);
+      expect(first.paths[0]).toContain(`${resolvePreferredOpenClawTmpDir()}/openclaw-cli-images-`);
       expect(first.paths[0]).toMatch(/\.png$/);
       await expect(fs.readFile(first.paths[0])).resolves.toEqual(Buffer.from(image.data, "base64"));
+      await first.cleanup();
+      await expect(fs.access(first.paths[0])).rejects.toMatchObject({ code: "ENOENT" });
     } finally {
-      await fs.rm(first.paths[0], { force: true });
+      await first.cleanup();
+      await second.cleanup();
       await fs.rm(workspaceDir, { recursive: true, force: true });
     }
   });
@@ -254,7 +258,7 @@ describe("writeCliImages", () => {
     try {
       expect(written.paths[0]).toMatch(/\.heic$/);
     } finally {
-      await fs.rm(written.paths[0], { force: true });
+      await written.cleanup();
       await fs.rm(workspaceDir, { recursive: true, force: true });
     }
   });

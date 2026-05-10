@@ -104,7 +104,7 @@ const mocks = vi.hoisted(() => {
       config: configState,
     })),
     readExecApprovalsSnapshot: vi.fn<() => ExecApprovalsSnapshot>(() => ({
-      path: "/tmp/exec-approvals.json",
+      path: "/tmp/openclaw.sqlite#kv/exec.approvals/current",
       exists: true,
       raw: "{}",
       hash: "approvals-hash",
@@ -218,7 +218,7 @@ describe("exec-policy CLI", () => {
     }));
     mocks.readExecApprovalsSnapshot.mockReset();
     mocks.readExecApprovalsSnapshot.mockImplementation(() => ({
-      path: "/tmp/exec-approvals.json",
+      path: "/tmp/openclaw.sqlite#kv/exec.approvals/current",
       exists: true,
       raw: "{}",
       hash: "approvals-hash",
@@ -238,7 +238,7 @@ describe("exec-policy CLI", () => {
     expect(mocks.defaultRuntime.writeJson).toHaveBeenCalledWith(
       expect.objectContaining({
         configPath: "/tmp/openclaw.json",
-        approvalsPath: "/tmp/exec-approvals.json",
+        approvalsStore: "/tmp/openclaw.sqlite#kv/exec.approvals/current",
         effectivePolicy: expect.objectContaining({
           scopes: [
             expect.objectContaining({
@@ -378,7 +378,7 @@ describe("exec-policy CLI", () => {
       config: mocks.getConfig(),
     }));
     mocks.readExecApprovalsSnapshot.mockImplementationOnce(() => ({
-      path: "/tmp/exec-approvals.json\u0007\nforged",
+      path: "/tmp/openclaw.sqlite#kv/exec.approvals/current\u0007\nforged",
       exists: true,
       raw: "{}",
       hash: "approvals-hash",
@@ -405,7 +405,7 @@ describe("exec-policy CLI", () => {
       mocks.defaultRuntime.log.mock.calls.map((call) => String(call[0] ?? "")).join("\n"),
     );
     expect(output).toContain("/tmp/openclaw.json");
-    expect(output).toContain("/tmp/exec-approvals.json");
+    expect(output).toContain("/tmp/openclaw.sqlite#kv/exec.approvals/current");
     expect(output).toContain("scope\\u{200B}name");
     expect(output).toContain("host=auto");
     expect(output).toContain("tools.exec.");
@@ -464,7 +464,7 @@ describe("exec-policy CLI", () => {
     const originalApprovals = structuredClone(mocks.getApprovals());
     const originalRaw = JSON.stringify(originalApprovals, null, 2);
     const originalSnapshot: ExecApprovalsSnapshot = {
-      path: "/tmp/exec-approvals.json",
+      path: "/tmp/openclaw.sqlite#kv/exec.approvals/current",
       exists: true,
       raw: originalRaw,
       hash: "approvals-hash",
@@ -484,9 +484,9 @@ describe("exec-policy CLI", () => {
     expect(mocks.runtimeErrors).toEqual(["config write failed"]);
   });
 
-  it("removes a newly-written approvals file when config replacement fails and the original file was missing", async () => {
+  it("removes newly-written approvals state when config replacement fails and the original state was missing", async () => {
     const missingSnapshot: ExecApprovalsSnapshot = {
-      path: "/tmp/missing-exec-approvals.json",
+      path: "/tmp/missing-openclaw.sqlite#kv/exec.approvals/current",
       exists: false,
       raw: null,
       hash: "approvals-hash",
@@ -508,7 +508,7 @@ describe("exec-policy CLI", () => {
     const originalApprovals = structuredClone(mocks.getApprovals());
     const originalRaw = JSON.stringify(originalApprovals, null, 2);
     const originalSnapshot = {
-      path: "/tmp/exec-approvals.json",
+      path: "/tmp/openclaw.sqlite#kv/exec.approvals/current",
       exists: true,
       raw: originalRaw,
       hash: "original-hash",
@@ -524,7 +524,7 @@ describe("exec-policy CLI", () => {
       agents: {},
     };
     const concurrentSnapshot: ExecApprovalsSnapshot = {
-      path: "/tmp/exec-approvals.json",
+      path: "/tmp/openclaw.sqlite#kv/exec.approvals/current",
       exists: true,
       raw: JSON.stringify(concurrentFile, null, 2),
       hash: "concurrent-write-hash",

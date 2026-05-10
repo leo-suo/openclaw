@@ -39,7 +39,7 @@ const mocks = vi.hoisted(() => {
           };
         }
         return {
-          path: "/tmp/exec-approvals.json",
+          path: "/tmp/openclaw.sqlite#kv/exec.approvals/current",
           exists: true,
           hash: "hash-1",
           file: { version: 1, agents: {} },
@@ -56,7 +56,7 @@ const mocks = vi.hoisted(() => {
 const { callGatewayFromCli, defaultRuntime, readBestEffortConfig, runtimeErrors } = mocks;
 
 const localSnapshot = {
-  path: "/tmp/local-exec-approvals.json",
+  path: "/tmp/local-openclaw.sqlite#kv/exec.approvals/current",
   exists: true,
   raw: "{}",
   hash: "hash-local",
@@ -249,13 +249,14 @@ describe("exec approvals CLI", () => {
             expect.objectContaining({
               scopeLabel: "agent:runner",
               security: expect.objectContaining({
-                hostSource: "/tmp/local-exec-approvals.json agents.*.security",
+                hostSource:
+                  "/tmp/local-openclaw.sqlite#kv/exec.approvals/current agents.*.security",
               }),
               ask: expect.objectContaining({
-                hostSource: "/tmp/local-exec-approvals.json agents.*.ask",
+                hostSource: "/tmp/local-openclaw.sqlite#kv/exec.approvals/current agents.*.ask",
               }),
               askFallback: expect.objectContaining({
-                source: "/tmp/local-exec-approvals.json agents.*.askFallback",
+                source: "/tmp/local-openclaw.sqlite#kv/exec.approvals/current agents.*.askFallback",
               }),
             }),
           ]),
@@ -282,7 +283,7 @@ describe("exec approvals CLI", () => {
         }
         if (method === "exec.approvals.node.get") {
           return {
-            path: "/tmp/node-exec-approvals.json",
+            path: "/tmp/node-openclaw.sqlite#kv/exec.approvals/current",
             exists: true,
             hash: "hash-node-1",
             file: {
@@ -317,7 +318,7 @@ describe("exec approvals CLI", () => {
               }),
               askFallback: expect.objectContaining({
                 effective: "deny",
-                source: "/tmp/node-exec-approvals.json defaults.askFallback",
+                source: "/tmp/node-openclaw.sqlite#kv/exec.approvals/current defaults.askFallback",
               }),
             }),
           ],
@@ -335,7 +336,7 @@ describe("exec approvals CLI", () => {
         }
         if (method === "exec.approvals.get") {
           return {
-            path: "/tmp/exec-approvals.json",
+            path: "/tmp/openclaw.sqlite#kv/exec.approvals/current",
             exists: true,
             hash: "hash-1",
             file: { version: 1, agents: {} },
@@ -367,7 +368,7 @@ describe("exec approvals CLI", () => {
         }
         if (method === "exec.approvals.get") {
           return {
-            path: "/tmp/exec-approvals.json",
+            path: "/tmp/openclaw.sqlite#kv/exec.approvals/current",
             exists: true,
             hash: "hash-1",
             file: { version: 1, agents: {} },
@@ -399,7 +400,7 @@ describe("exec approvals CLI", () => {
         }
         if (method === "exec.approvals.node.get") {
           return {
-            path: "/tmp/node-exec-approvals.json",
+            path: "/tmp/node-openclaw.sqlite#kv/exec.approvals/current",
             exists: true,
             hash: "hash-node-1",
             file: { version: 1, agents: {} },

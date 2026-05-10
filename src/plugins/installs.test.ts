@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildNpmResolutionInstallFields, recordPluginInstall } from "./installs.js";
+import {
+  buildNpmResolutionInstallFields,
+  recordPluginInstall,
+  recordPluginInstallInRecordMap,
+} from "./installs.js";
 
 function expectRecordedInstall(pluginId: string, next: ReturnType<typeof recordPluginInstall>) {
   expect(next.plugins?.installs?.[pluginId]).toMatchObject({
@@ -72,5 +76,24 @@ describe("recordPluginInstall", () => {
   it("stores install metadata for the plugin id", () => {
     const next = recordPluginInstall({}, { pluginId: "demo", source: "npm", spec: "demo@latest" });
     expectRecordedInstall("demo", next);
+  });
+
+  it("updates install record maps without a config-shaped carrier", () => {
+    const next = recordPluginInstallInRecordMap(
+      {
+        demo: {
+          source: "npm",
+          spec: "demo@1.0.0",
+          installedAt: "2026-04-22T00:00:00.000Z",
+        },
+      },
+      { pluginId: "demo", source: "npm", spec: "demo@latest" },
+    );
+
+    expect(next.demo).toMatchObject({
+      source: "npm",
+      spec: "demo@latest",
+    });
+    expect(typeof next.demo?.installedAt).toBe("string");
   });
 });
